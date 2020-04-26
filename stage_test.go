@@ -1,7 +1,6 @@
 package ingester
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -52,10 +51,35 @@ func TestStage(t *testing.T) {
 	ingestfiles, err := gradexpath.GetFileList(gradexpath.Ingest())
 	assert.NoError(t, err)
 
-	fmt.Println(len(ingestfiles))
-
 	assert.True(t, gradexpath.CopyIsComplete(testfiles, ingestfiles))
 
 	StageFromIngest()
+
+	expectedRejects, err := gradexpath.GetFileList("./expected/rejects")
+	assert.NoError(t, err)
+
+	actualRejects, err := gradexpath.GetFileList(gradexpath.Ingest())
+	assert.NoError(t, err)
+
+	assert.True(t, len(expectedRejects) == len(actualRejects))
+	assert.True(t, gradexpath.CopyIsComplete(expectedRejects, actualRejects))
+
+	expectedTxt, err := gradexpath.GetFileList("./expected/temp-txt")
+	assert.NoError(t, err)
+
+	actualTxt, err := gradexpath.GetFileList(gradexpath.TempTxt())
+	assert.NoError(t, err)
+
+	assert.True(t, len(expectedTxt) == len(actualTxt))
+	assert.True(t, gradexpath.CopyIsComplete(expectedTxt, actualTxt))
+
+	expectedPdf, err := gradexpath.GetFileList("./expected/temp-pdf")
+	assert.NoError(t, err)
+
+	actualPdf, err := gradexpath.GetFileList(gradexpath.TempPdf())
+	assert.NoError(t, err)
+
+	assert.True(t, len(expectedPdf) == len(actualPdf))
+	assert.True(t, gradexpath.CopyIsComplete(expectedPdf, actualPdf))
 
 }
