@@ -4,7 +4,10 @@
 *.dll
 *.so
 *.dylib
-
+*~
+*#
+.#*
+tmp-delete-me
 # Test binary, built with `go test -c`
 *.test
 
