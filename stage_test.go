@@ -1,9 +1,12 @@
 package ingester
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/timdrysdale/gradexpath"
 )
 
@@ -23,6 +26,25 @@ func TestStage(t *testing.T) {
 
 	EnsureDirectoryStructure()
 
-	gradexpath.Copy("./test/*", gradexpath.Ingest())
+	testfiles, err := gradexpath.GetFileList("./test")
+
+	assert.NoError(t, err)
+
+	fmt.Println(testfiles)
+
+	for _, file := range testfiles {
+		destination := filepath.Join(gradexpath.Ingest(), filepath.Base(file))
+		err := gradexpath.Copy(file, destination)
+		assert.NoError(t, err)
+
+	}
+
+	fmt.Println(gradexpath.Ingest())
+	ingestfiles, err := gradexpath.GetFileList(gradexpath.Ingest())
+	assert.NoError(t, err)
+
+	fmt.Println(ingestfiles)
+
+	StageFromIngest()
 
 }

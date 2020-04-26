@@ -60,7 +60,10 @@ LOOP:
 }
 
 func handleIngestZip(zipPath string) error {
-	temploc := fmt.Sprintf("tmp-unzip-%s", strings.Replace(zipPath, " ", "", -1))
+	suffix := filepath.Ext(zipPath)
+	zipBase := filepath.Base(zipPath)
+	zipName := strings.TrimSuffix(zipBase, suffix)
+	temploc := fmt.Sprintf("tmp-unzip-%s", strings.Replace(zipName, " ", "", -1))
 	extractPath := filepath.Join(gradexpath.Ingest(), temploc)
 	err := handleZip(zipPath, extractPath)
 	return err
