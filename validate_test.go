@@ -9,7 +9,7 @@ import (
 	"github.com/timdrysdale/gradexpath"
 )
 
-func TestStage(t *testing.T) {
+func TestValidate(t *testing.T) {
 
 	gradexpath.SetTesting()
 
@@ -72,5 +72,9 @@ func TestStage(t *testing.T) {
 
 	assert.True(t, len(expectedPdf) == len(actualPdf))
 	assert.True(t, gradexpath.CopyIsComplete(expectedPdf, actualPdf))
+
+	// now we test validate!
+
+	//assert.NoError(t, ValidateNewPapers())
 
 }

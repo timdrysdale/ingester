@@ -34,13 +34,13 @@ LOOP:
 			//	handleIngestZip(path)
 			// TODO try another zip library
 			case gradexpath.IsTxt(path):
-				err := gradexpath.MoveIfNewerThanDestination(path, gradexpath.TempTxt())
+				err := gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.TempTxt())
 				if err != nil {
 					return err
 				}
 			case gradexpath.IsPdf(path):
 
-				gradexpath.MoveIfNewerThanDestination(path, gradexpath.TempPdf())
+				gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.TempPdf())
 				if err != nil {
 					return err
 				}
