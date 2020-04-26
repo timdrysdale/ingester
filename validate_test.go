@@ -75,6 +75,6 @@ func TestValidate(t *testing.T) {
 
 	// now we test validate!
 
-	//assert.NoError(t, ValidateNewPapers())
+	assert.NoError(t, ValidateNewPapers())
 
 }
