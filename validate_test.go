@@ -77,4 +77,24 @@ func TestValidate(t *testing.T) {
 
 	assert.NoError(t, ValidateNewPapers())
 
+	exam := "Practice Exam Drop Box"
+
+	actualPdf, err = gradexpath.GetFileList(gradexpath.AcceptedPapers(exam))
+	assert.NoError(t, err)
+	assert.True(t, len(expectedPdf) == len(actualPdf))
+	assert.True(t, gradexpath.CopyIsComplete(expectedPdf, actualPdf))
+
+	actualTxt, err = gradexpath.GetFileList(gradexpath.AcceptedReceipts(exam))
+	assert.NoError(t, err)
+	assert.True(t, len(expectedTxt) == len(actualTxt))
+	assert.True(t, gradexpath.CopyIsComplete(expectedTxt, actualTxt))
+
+	tempPdf, err := gradexpath.GetFileList(gradexpath.TempPdf())
+	assert.NoError(t, err)
+	assert.Equal(t, len(tempPdf), 0)
+
+	tempTxt, err := gradexpath.GetFileList(gradexpath.TempTxt())
+	assert.NoError(t, err)
+	assert.Equal(t, len(tempTxt), 0)
+
 }
