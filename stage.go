@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/artdarek/go-unzip"
 	"github.com/timdrysdale/gradexpath"
+	"github.com/timdrysdale/unzip"
 )
 
 // wait for user to press an "do ingest button", then filewalk to get the paths
@@ -29,26 +29,29 @@ LOOP:
 			}
 
 			switch {
-			case gradexpath.IsZip(path):
-				passAgain = true
-				handleIngestZip(path)
+			//case gradexpath.IsZip(path):
+			//	passAgain = true
+			//	handleIngestZip(path)
+			// TODO try another zip library
 			case gradexpath.IsTxt(path):
 				err := gradexpath.MoveIfNewerThanDestination(path, gradexpath.TempTxt())
 				if err != nil {
 					return err
 				}
 			case gradexpath.IsPdf(path):
+
 				gradexpath.MoveIfNewerThanDestination(path, gradexpath.TempPdf())
 				if err != nil {
 					return err
 				}
 			}
-			fmt.Printf("visited file or dir: %q\n", path)
+
 			return nil
 		})
 		if err != nil {
 			return err
 		}
+
 		if !passAgain {
 			break LOOP
 		}

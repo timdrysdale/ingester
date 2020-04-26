@@ -2,6 +2,7 @@ package ingester
 
 import (
 	"os"
+	"reflect"
 
 	pdf "github.com/timdrysdale/unipdf/v3/model"
 )
@@ -41,4 +42,22 @@ func countPages(inputPath string) (int, error) {
 
 	return numPages, nil
 
+}
+
+// Mod from array to slice,
+// from https://www.golangprograms.com/golang-check-if-array-element-exists.html
+func itemExists(sliceType interface{}, item interface{}) bool {
+	slice := reflect.ValueOf(sliceType)
+
+	if slice.Kind() != reflect.Slice {
+		panic("Invalid data-type")
+	}
+
+	for i := 0; i < slice.Len(); i++ {
+		if slice.Index(i).Interface() == item {
+			return true
+		}
+	}
+
+	return false
 }

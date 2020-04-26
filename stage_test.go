@@ -10,6 +10,15 @@ import (
 	"github.com/timdrysdale/gradexpath"
 )
 
+var rejectedFiles = []string{
+	"bar.jpg",
+	"foo.doc",
+	"Practice Exam Drop Box_s00000002_attempt_2020-04-22-10-43-23_my exam.doc",
+	"Practice Exam Drop Box_s00000005_attempt_2020-04-22-11-58-24_Practice Online Exam - Copy (copy).jpg",
+	"Practice Exam Drop Box_s00000005_attempt_2020-04-22-11-58-24_Practice Online Exam - Copy.jpg",
+	"Practice Exam Drop Box_s00000005_attempt_2020-04-22-11-58-24_Practice Online Exam.jpg",
+}
+
 func TestStage(t *testing.T) {
 
 	gradexpath.SetTesting()
@@ -30,7 +39,7 @@ func TestStage(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	fmt.Println(testfiles)
+	//fmt.Println(testfiles)
 
 	for _, file := range testfiles {
 		destination := filepath.Join(gradexpath.Ingest(), filepath.Base(file))
@@ -39,11 +48,13 @@ func TestStage(t *testing.T) {
 
 	}
 
-	fmt.Println(gradexpath.Ingest())
+	//fmt.Println(gradexpath.Ingest())
 	ingestfiles, err := gradexpath.GetFileList(gradexpath.Ingest())
 	assert.NoError(t, err)
 
-	fmt.Println(ingestfiles)
+	fmt.Println(len(ingestfiles))
+
+	assert.True(t, gradexpath.CopyIsComplete(testfiles, ingestfiles))
 
 	StageFromIngest()
 
