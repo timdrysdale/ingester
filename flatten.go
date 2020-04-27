@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/timdrysdale/anon"
 	"github.com/timdrysdale/gradexpath"
 	"github.com/timdrysdale/parselearn"
@@ -28,6 +30,24 @@ type FlattenTask struct {
 func FlattenNewPapers(exam string) error {
 
 	//assume someone hits a button to ask us to do this ...
+
+	// we'll use this same set of procDetails for flattens that we do in this batch
+	// that means we can use the uuid to map the processing in graphviz later, for example
+	var UUIDBytes uuid.UUID
+
+	UUIDBytes, err := uuid.NewRandom()
+	uuid := UUIDBytes.String()
+	if err != nil {
+		uuid = fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	procDetails := pdfpagedata.ProcessingDetails{
+		UUID:     uuid,
+		Previous: "none",
+		UnixTime: time.Now().UnixNano(),
+		Name:     "flatten",
+		By:       pdfpagedata.ContactDetails{Name: "ingester"},
+		Sequence: 0,
+	}
 
 	// load our identity database
 	identity, err := anon.New(gradexpath.IdentityCSV())
@@ -90,16 +110,17 @@ func FlattenNewPapers(exam string) error {
 			Author: pdfpagedata.AuthorDetails{
 				Anonymous: anonymousIdentity,
 			},
+			Processing: []pdfpagedata.ProcessingDetails{procDetails},
 		}
-		//TODO fill this out a bit more...
 
 		renamedBase := gradexpath.GetAnonymousFileName(sub.Assignment, anonymousIdentity)
 		outputPath := filepath.Join(gradexpath.AnonymousPapers(sub.Assignment), renamedBase)
 
-		//fmt.Println("=====================")
-		//fmt.Println(outputPath)
-		//fmt.Println("=====================")
-		flattenTasks = append(flattenTasks, FlattenTask{InputPath: pdfPath, OutputPath: outputPath, PageCount: count, Data: pagedata})
+		flattenTasks = append(flattenTasks, FlattenTask{
+			InputPath:  pdfPath,
+			OutputPath: outputPath,
+			PageCount:  count,
+			Data:       pagedata})
 	}
 
 	// now process the files
@@ -201,6 +222,8 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 	fmt.Printf("Page file: %s\n", pageFileOption)
 	mergePaths := []string{}
 
+	pageData.Page.Of = numPages
+
 	// gs starts indexing at 1
 	for imgIdx := 1; imgIdx <= numPages; imgIdx = imgIdx + 1 {
 
@@ -212,6 +235,21 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 		svgLayoutPath := gradexpath.FlattenLayoutSVG()
 
 		pageNumber := imgIdx - 1
+
+		pageData.Page.Number = pageNumber + 1
+		pageData.Page.Filename = filepath.Base(pageFilename)
+
+		var pageUUIDBytes uuid.UUID
+
+		pageUUIDBytes, err = uuid.NewRandom()
+
+		pageUUID := pageUUIDBytes.String()
+
+		if err != nil {
+			pageUUID = fmt.Sprintf("%d", time.Now().UnixNano())
+		}
+
+		pageData.Page.UUID = pageUUID
 
 		contents := parsesvg.SpreadContents{
 			SvgLayoutPath:         svgLayoutPath,
