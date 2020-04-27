@@ -3,7 +3,9 @@ package ingester
 import (
 	"os"
 	"reflect"
+	"strings"
 
+	"github.com/timdrysdale/gradexpath"
 	pdf "github.com/timdrysdale/unipdf/v3/model"
 )
 
@@ -60,4 +62,34 @@ func itemExists(sliceType interface{}, item interface{}) bool {
 	}
 
 	return false
+}
+
+// when we read the Learn receipt, we might get a suffix for a word doc etc
+// so find the pdf file in the target directory with the same base prefix name
+// but possibly variable capitalisation of the suffix (handmade file!)
+func GetPdfPath(filename, directory string) (string, error) {
+
+	// if the original receipt says the submission was not pdf
+	// we need to find a handmade PDF with possibly non-lower case suffix
+	// so search for matching basename
+	if !gradexpath.IsPdf(filename) {
+
+		possibleFiles, err := gradexpath.GetFileList(directory)
+		if err != nil {
+			return "", err
+		}
+
+	LOOP:
+		for _, file := range possibleFiles {
+			want := gradexpath.BareFile(filename)
+			got := gradexpath.BareFile(file)
+			equal := strings.Compare(want, got) == 0
+			if equal {
+				filename = file
+				break LOOP
+			}
+		}
+
+	}
+	return filename, nil
 }

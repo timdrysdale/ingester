@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/timdrysdale/gradexpath"
 	"github.com/timdrysdale/parselearn"
@@ -37,27 +36,9 @@ func ValidateNewPapers() error {
 			}
 		}
 
-		// Get the corresponding PDF from the temp-pdf dir
-		pdfFilename := sub.Filename
-
-		// if the original receipt says the submission was not pdf
-		// we need to find a handmade PDF with possibly non-lower case suffix
-		// so search for matching basename
-		if !gradexpath.IsPdf(pdfFilename) {
-
-			possibleFiles, err := gradexpath.GetFileList(gradexpath.TempPdf())
-			if err != nil {
-				continue //TODO flag we've an issue?
-			}
-
-			for _, file := range possibleFiles {
-				want := gradexpath.BareFile(sub.Filename)
-				got := gradexpath.BareFile(file)
-				equal := strings.Compare(want, got) == 0
-				if equal {
-					pdfFilename = file
-				}
-			}
+		pdfFilename, err := GetPdfPath(sub.Filename, gradexpath.TempPdf())
+		if err != nil {
+			continue
 		}
 
 		// file we want to get from the temp-pdf dir
@@ -89,42 +70,4 @@ func ValidateNewPapers() error {
 
 	}
 	return nil
-}
-
-// for ingest, we only need to find pairs of
-// ingest receipt + matching pdf input
-// we assume someone has replaced non-pdf with pdf
-// so we look for version of file with pdf suffix
-func handleIngestLearnReceipt(path string) error {
-
-	// read the details
-	sub, err := parselearn.ParseLearnReceipt(path)
-	if err != nil {
-		return err
-	}
-
-	if gradexpath.IsPdf(sub.Filename) {
-		if _, err := os.Stat(sub.Filename); os.IsNotExist(err) {
-			return err
-		}
-
-	}
-	return nil
-}
-
-func IdentifyReplacementPdf(path string) error {
-
-	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
-			return err
-		}
-		if info.IsDir() {
-			//expect file at same level as receipt, save time
-			return filepath.SkipDir
-		}
-		fmt.Printf("visited file or dir: %q\n", path)
-		return nil
-	})
-	return err
 }
