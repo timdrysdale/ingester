@@ -1,11 +1,14 @@
 package ingester
 
 import (
+	"errors"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 
 	"github.com/timdrysdale/gradexpath"
+	"github.com/timdrysdale/parselearn"
 	pdf "github.com/timdrysdale/unipdf/v3/model"
 )
 
@@ -90,6 +93,33 @@ func GetPdfPath(filename, directory string) (string, error) {
 			}
 		}
 
+	} else { //assume the file is there
+		filename = filepath.Join(directory, filename)
 	}
 	return filename, nil
+}
+
+func GetShortLearnDate(sub parselearn.Submission) (string, error) {
+
+	if sub == (parselearn.Submission{}) {
+		return "", errors.New("Empty submission")
+	}
+	newDate := sub.DateSubmitted
+	//Example: "Tuesday, 23 April 2020 10-43-23 o'clock BST"
+
+	tokens := strings.Split(newDate, " ")
+
+	if len(tokens) == 7 {
+		day := tokens[1]
+		month := tokens[2]
+		year := tokens[3]
+		if len(month) >= 3 {
+			month = month[0:3]
+		}
+		s := []string{day, month, year}
+		newDate = strings.Join(s, "-")
+	}
+
+	// no change if we don't understand the format?
+	return newDate, nil
 }
