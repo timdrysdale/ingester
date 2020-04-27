@@ -6,6 +6,20 @@ import (
 	"strings"
 )
 
+func MakeAnonymous(exam string) error {
+
+	// assume someone hits a button - for this exam
+	//a, err := anon.New(gradexpath.IdentityCSV())
+	//
+	//receipts, err := gradexpath.GetFileList(gradexpath.AcceptedReceipts(exam))
+	//
+	//if err != nil {
+	//	return err
+	//}
+
+	return nil
+}
+
 // rename files
 func checkMatriculation(m string) (bool, error) {
 	expectedLength := 8
@@ -18,6 +32,7 @@ func checkMatriculation(m string) (bool, error) {
 	}
 	return true, nil
 }
+
 func checkExamNumber(m string) (bool, error) {
 	expectedLength := 7
 	actualLength := len(m)
