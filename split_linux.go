@@ -2,9 +2,7 @@ package ingester
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 )
 
 // simplified https://github.com/catherinelu/evangelist/blob/master/server.go
@@ -12,19 +10,19 @@ import (
 func convertPDFToJPEGs(pdfPath string, jpegPath string, outputFile string) error {
 
 	//fmt.Printf("%s\n%s\n%s\n", pdfPath, jpegPath, outputFile)
-	info, err := os.Stat(pdfPath)
-	fmt.Println(err, info)
-	info, err = os.Stat(filepath.Dir(jpegPath))
-	fmt.Println(err, info)
-	info, err = os.Stat(filepath.Dir(outputFile))
-	fmt.Println(err, info)
+	//info, err := os.Stat(pdfPath)
+	//fmt.Println(err, info)
+	//info, err = os.Stat(filepath.Dir(jpegPath))
+	//fmt.Println(err, info)
+	//info, err = os.Stat(filepath.Dir(outputFile))
+	//fmt.Println(err, info)
 
 	outputFileOption := fmt.Sprintf("-sOutputFile=%s", outputFile)
 
 	cmd := exec.Command("gs", "-dNOPAUSE", "-sDEVICE=jpeg", outputFileOption, "-dJPEGQ=90", "-r175", "-q", pdfPath,
 		"-c", "quit")
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("gs command failed: %s\n", err.Error())
 		return err

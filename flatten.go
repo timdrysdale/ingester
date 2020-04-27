@@ -34,7 +34,7 @@ func FlattenNewPapers(exam string) error {
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("Got Identity DB")
 	flattenTasks := []FlattenTask{}
 
 	receipts, err := gradexpath.GetFileList(gradexpath.AcceptedReceipts(exam))
@@ -46,6 +46,7 @@ func FlattenNewPapers(exam string) error {
 
 		sub, err := parselearn.ParseLearnReceipt(receipt)
 		if err != nil {
+			fmt.Printf("couldn't parse receipt %s because %v", receipt, err)
 			continue
 			// TODO need to flag to user as we shouldn't fail to read a learn receipt here
 		}
@@ -53,6 +54,7 @@ func FlattenNewPapers(exam string) error {
 		pdfPath, err := GetPdfPath(sub.Filename, gradexpath.AcceptedPapers(exam))
 
 		if err != nil {
+			fmt.Printf("couldn't get PDF filename for %s because %v\n", sub.Filename, err)
 			continue
 			// TODO need to flag to user as we shouldn't fail to find a PDF here
 		}
@@ -60,11 +62,13 @@ func FlattenNewPapers(exam string) error {
 		count, err := countPages(pdfPath)
 
 		if err != nil {
+			fmt.Printf("couldn't countPages for %s because %v\n", pdfPath, err)
 			continue
 			// TODO need to flag to user as we shouldn't fail to count pages here
 		}
 		shortDate, err := GetShortLearnDate(sub)
 		if err != nil {
+			fmt.Printf("couldn't get shortlearndate for %s because %v\n", receipt, err)
 			continue
 			// TODO need to flag to user as we shouldn't fail to read sub here
 		}
@@ -73,6 +77,7 @@ func FlattenNewPapers(exam string) error {
 
 		anonymousIdentity, err := identity.GetAnonymous(sub.Matriculation)
 		if err != nil {
+			fmt.Printf("couldn't get identity for for %s because %v\n", sub.Matriculation, err)
 			continue
 			// TODO need to flag to user as we should have all IDs in our dictionary
 		}
@@ -91,10 +96,9 @@ func FlattenNewPapers(exam string) error {
 		renamedBase := gradexpath.GetAnonymousFileName(sub.Assignment, anonymousIdentity)
 		outputPath := filepath.Join(gradexpath.AnonymousPapers(sub.Assignment), renamedBase)
 
-		fmt.Println("=====================")
-		fmt.Println(filepath.Base(pdfPath))
-		fmt.Println(outputPath)
-		fmt.Println("=====================")
+		//fmt.Println("=====================")
+		//fmt.Println(outputPath)
+		//fmt.Println("=====================")
 		flattenTasks = append(flattenTasks, FlattenTask{InputPath: pdfPath, OutputPath: outputPath, PageCount: count, Data: pagedata})
 	}
 
@@ -166,18 +170,18 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 	jpegPath := gradexpath.AcceptedPaperImages(pageData.Exam.CourseCode)
 
 	suffix := filepath.Ext(inputPath)
-	basename := strings.TrimSuffix(inputPath, suffix)
+	basename := strings.TrimSuffix(filepath.Base(inputPath), suffix)
 	jpegFileOption := fmt.Sprintf("%s/%s%%04d.jpg", jpegPath, basename)
 
 	f, err := os.Open(inputPath)
 	if err != nil {
-		fmt.Println("Can't open pdf")
+		fmt.Println("FLATTEN Can't open pdf")
 		return 0, err
 	}
 
 	pdfReader, err := pdf.NewPdfReader(f)
 	if err != nil {
-		fmt.Println("Can't read test pdf")
+		fmt.Println("FLATTEN Can't read pdf")
 		return 0, err
 	}
 
@@ -194,7 +198,7 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 
 	pagePath := gradexpath.AcceptedPaperPages(pageData.Exam.CourseCode)
 	pageFileOption := fmt.Sprintf("%s/%s%%04d.pdf", pagePath, basename)
-
+	fmt.Printf("Page file: %s\n", pageFileOption)
 	mergePaths := []string{}
 
 	// gs starts indexing at 1
@@ -210,26 +214,29 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 		pageNumber := imgIdx - 1
 
 		contents := parsesvg.SpreadContents{
-			SvgLayoutPath:     svgLayoutPath,
-			SpreadName:        "flatten",
-			PreviousImagePath: previousImagePath,
-			PageNumber:        pageNumber,
-			PdfOutputPath:     outputPath,
-			Comments:          comments,
-			PageData:          pageData,
+			SvgLayoutPath:         svgLayoutPath,
+			SpreadName:            "flatten",
+			PreviousImagePath:     previousImagePath,
+			PageNumber:            pageNumber,
+			PdfOutputPath:         pageFilename,
+			Comments:              comments,
+			PageData:              pageData,
+			TemplatePathsRelative: true,
 		}
 
 		err := parsesvg.RenderSpreadExtra(contents)
 		if err != nil {
+			fmt.Println(err)
 			return 0, err
 
 		}
 
 		mergePaths = append(mergePaths, pageFilename)
 	}
-
+	fmt.Printf("MergePaths: %v\v", mergePaths)
 	err = mergePdf(mergePaths, outputPath)
 	if err != nil {
+		fmt.Printf("MERGE: %v", err)
 		return 0, err
 	}
 

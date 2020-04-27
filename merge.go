@@ -225,6 +225,7 @@ func mergePdf(inputPaths []string, outputPath string) error {
 	for docIdx, inputPath := range inputPaths {
 		f, err := os.Open(inputPath)
 		if err != nil {
+			fmt.Printf("\n\nmergePDF input path problem %s\n", inputPath)
 			return err
 		}
 

@@ -1,6 +1,7 @@
 package ingester
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -35,6 +36,15 @@ func TestFlatten(t *testing.T) {
 		err := gradexpath.Copy(file, destination)
 		assert.NoError(t, err)
 
+	}
+
+	templateFiles, err := gradexpath.GetFileList("./test-fs/etc/ingest/template")
+	assert.NoError(t, err)
+
+	for _, file := range templateFiles {
+		destination := filepath.Join(gradexpath.IngestTemplate(), filepath.Base(file))
+		err := gradexpath.Copy(file, destination)
+		assert.NoError(t, err)
 	}
 
 	//fmt.Println(gradexpath.Ingest())
@@ -100,7 +110,11 @@ func TestFlatten(t *testing.T) {
 	src := "./test-fs/etc/identity/identity.csv"
 	dest := "./tmp-delete-me/etc/identity/identity.csv"
 	err = gradexpath.Copy(src, dest)
+	fmt.Println(err)
 	assert.NoError(t, err)
+	info, err := os.Stat(dest)
+	fmt.Println(info)
+	fmt.Println(err)
 
 	err = FlattenNewPapers("Practice Exam Drop Box")
 	assert.NoError(t, err)
