@@ -96,6 +96,12 @@ func TestFlatten(t *testing.T) {
 
 	// Now we test Flatten
 
+	//copy in the identity database
+	src := "./test-fs/etc/identity/identity.csv"
+	dest := "./tmp-delete-me/etc/identity/identity.csv"
+	err = gradexpath.Copy(src, dest)
+	assert.NoError(t, err)
+
 	err = FlattenNewPapers("Practice Exam Drop Box")
 	assert.NoError(t, err)
 }
