@@ -36,7 +36,7 @@
      inkscape:window-x="70"
      inkscape:window-y="27"
      inkscape:window-maximized="1"
-     inkscape:snap-global="false"
+     inkscape:snap-global="true"
      inkscape:snap-object-midpoints="true"
      inkscape:snap-center="false"
      inkscape:snap-page="true" />
@@ -76,9 +76,9 @@
        y="283.77115"
        x="34.334274"
        height="8.768795"
-       width="89.168732"
+       width="112.60326"
        id="rect9434"
-       style="opacity:0.98999999;fill:#ff00ff;fill-opacity:1;stroke:none;stroke-width:0.34351099;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:1">
+       style="opacity:0.98999999;fill:#ff00ff;fill-opacity:1;stroke:none;stroke-width:0.38602;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:1">
       <desc
          id="desc9430">{&quot;text&quot;:&quot;-------&quot;,&quot;textSize&quot;:26}</desc>
       <title
@@ -110,24 +110,6 @@
       <title
          id="title9452">page-number</title>
     </rect>
-    <path
-       sodipodi:open="true"
-       d="m 0.11263714,291.41388 a 4.1691008,4.0000606 0 0 1 4.05576386,4.07188 4.1691008,4.0000606 0 0 1 -4.2085266,3.92659 4.1691008,4.0000606 0 0 1 -4.1289734,-4.00358 4.1691008,4.0000606 0 0 1 4.13670091,-3.99623"
-       sodipodi:end="4.7046179"
-       sodipodi:start="4.7394094"
-       sodipodi:ry="4.0000606"
-       sodipodi:rx="4.1691008"
-       sodipodi:cy="295.41248"
-       sodipodi:cx="0"
-       sodipodi:type="arc"
-       id="path3902"
-       style="display:inline;opacity:1;fill:#ed1a1f;fill-opacity:1;stroke:none;stroke-width:0.49999997;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:1"
-       inkscape:transform-center-y="6.0390301e-05">
-      <desc
-         id="desc3950">header-flatten</desc>
-      <title
-         id="title3900">svg-flatten-header</title>
-    </path>
   </g>
   <g
      inkscape:groupmode="layer"
@@ -136,7 +118,25 @@
   <g
      inkscape:groupmode="layer"
      id="layer3"
-     inkscape:label="anchors" />
+     inkscape:label="anchors">
+    <path
+       transform="translate(0,-282.00001)"
+       sodipodi:open="true"
+       d="m 0.11263714,278.0014 a 4.1691008,4.0000606 0 0 1 4.05576386,4.07189 4.1691008,4.0000606 0 0 1 -4.2085266,3.92659 4.1691008,4.0000606 0 0 1 -4.1289734,-4.00359 4.1691008,4.0000606 0 0 1 4.13670091,-3.99623"
+       sodipodi:end="4.7046179"
+       sodipodi:start="4.7394094"
+       sodipodi:ry="4.0000606"
+       sodipodi:rx="4.1691008"
+       sodipodi:cy="282"
+       sodipodi:cx="0"
+       sodipodi:type="arc"
+       id="path3902"
+       style="display:inline;opacity:1;fill:#ed1a1f;fill-opacity:1;stroke:none;stroke-width:0.49999997;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:1"
+       inkscape:transform-center-y="6.0390301e-05">
+      <title
+         id="title3900">ref-anchor</title>
+    </path>
+  </g>
   <g
      inkscape:groupmode="layer"
      id="layer2"
