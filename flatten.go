@@ -54,7 +54,7 @@ func FlattenNewPapers(exam string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Got Identity DB")
+
 	flattenTasks := []FlattenTask{}
 
 	receipts, err := gradexpath.GetFileList(gradexpath.AcceptedReceipts(exam))
@@ -219,7 +219,7 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 
 	pagePath := gradexpath.AcceptedPaperPages(pageData.Exam.CourseCode)
 	pageFileOption := fmt.Sprintf("%s/%s%%04d.pdf", pagePath, basename)
-	fmt.Printf("Page file: %s\n", pageFileOption)
+
 	mergePaths := []string{}
 
 	pageData.Page.Of = numPages
@@ -251,6 +251,18 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 
 		pageData.Page.UUID = pageUUID
 
+		headerPrefills := parsesvg.DocPrefills{}
+
+		headerPrefills[pageNumber] = make(map[string]string)
+
+		headerPrefills[pageNumber]["page-number"] = fmt.Sprintf("%d/%d", pageNumber+1, numPages)
+
+		headerPrefills[pageNumber]["author"] = pageData.Author.Anonymous
+
+		headerPrefills[pageNumber]["date"] = pageData.Exam.Date
+
+		headerPrefills[pageNumber]["title"] = pageData.Exam.CourseCode
+
 		contents := parsesvg.SpreadContents{
 			SvgLayoutPath:         svgLayoutPath,
 			SpreadName:            "flatten",
@@ -260,6 +272,7 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 			Comments:              comments,
 			PageData:              pageData,
 			TemplatePathsRelative: true,
+			Prefills:              headerPrefills,
 		}
 
 		err := parsesvg.RenderSpreadExtra(contents)
@@ -271,7 +284,6 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 
 		mergePaths = append(mergePaths, pageFilename)
 	}
-	fmt.Printf("MergePaths: %v\v", mergePaths)
 	err = mergePdf(mergePaths, outputPath)
 	if err != nil {
 		fmt.Printf("MERGE: %v", err)
