@@ -1,13 +1,13 @@
 package ingester
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/timdrysdale/gradexpath"
+	"github.com/timdrysdale/pdfpagedata"
 )
 
 func TestFlatten(t *testing.T) {
@@ -29,8 +29,6 @@ func TestFlatten(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	//fmt.Println(testfiles)
-
 	for _, file := range testfiles {
 		destination := filepath.Join(gradexpath.Ingest(), filepath.Base(file))
 		err := gradexpath.Copy(file, destination)
@@ -47,7 +45,6 @@ func TestFlatten(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	//fmt.Println(gradexpath.Ingest())
 	ingestfiles, err := gradexpath.GetFileList(gradexpath.Ingest())
 	assert.NoError(t, err)
 
@@ -110,12 +107,34 @@ func TestFlatten(t *testing.T) {
 	src := "./test-fs/etc/identity/identity.csv"
 	dest := "./tmp-delete-me/etc/identity/identity.csv"
 	err = gradexpath.Copy(src, dest)
-	fmt.Println(err)
 	assert.NoError(t, err)
-	info, err := os.Stat(dest)
-	fmt.Println(info)
-	fmt.Println(err)
+	_, err = os.Stat(dest)
 
+	// do flatten
 	err = FlattenNewPapers("Practice Exam Drop Box")
 	assert.NoError(t, err)
+
+	// check files exist
+
+	expectedAnonymousPdf := []string{
+		"Practice Exam Drop Box-B999995.pdf",
+		"Practice Exam Drop Box-B999997.pdf",
+		"Practice Exam Drop Box-B999998.pdf",
+		"Practice Exam Drop Box-B999999.pdf",
+	}
+
+	anonymousPdf, err := gradexpath.GetFileList(gradexpath.AnonymousPapers(exam))
+	assert.NoError(t, err)
+
+	assert.Equal(t, len(anonymousPdf), len(expectedAnonymousPdf))
+
+	assert.True(t, gradexpath.CopyIsComplete(expectedAnonymousPdf, anonymousPdf))
+
+	// check data extraction
+
+	pds, err := pdfpagedata.GetPageDataFromFile(anonymousPdf[0])
+	assert.NoError(t, err)
+	pd := pds[0]
+	assert.Equal(t, pd[0].Exam.CourseCode, "Practice Exam Drop Box")
+
 }
