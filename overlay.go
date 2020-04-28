@@ -21,39 +21,13 @@ type OverlayTask struct {
 	InputPath     string
 	PageCount     int
 	NewProcessing pdfpagedata.ProcessingDetails
+	NewQuestion   pdfpagedata.QuestionDetails
 	PageDataMap   map[int][]pdfpagedata.PageData
 	OutputPath    string
 	SpreadName    string
 	Template      string
 	Msg           *chmsg.Messager
 }
-
-/*
-// temp storage for things during overlay refactor
-func ExampleWrapperFunction() {
-
-	var UUIDBytes uuid.UUID
-
-	UUIDBytes, err := uuid.NewRandom()
-	uuid := UUIDBytes.String()
-	if err != nil {
-		uuid = fmt.Sprintf("%d", time.Now().UnixNano())
-	}
-
-	// we'll use this same set of procDetails for flattens that we do in this batch
-	// that means we can use the uuid to map the processing in graphviz later, for example
-
-	procDetails := pdfpagedata.ProcessingDetails{
-		UUID:     uuid,
-		Previous: "", //dynamic
-		UnixTime: time.Now().UnixNano(),
-		Name:     strings.TrimSuffix(filepath.Base(template), filepath.Ext(template)) + "-" + spread,
-		By:       pdfpagedata.ContactDetails{Name: "ingester"},
-		Sequence: "", //dynamic
-	}
-
-}
-*/
 
 // Overlay command struct - for backwards compatability
 // ExamName: This is our internal system representation of the exam,
@@ -68,6 +42,7 @@ type OverlayCommand struct {
 	TemplatePath      string
 	SpreadName        string
 	ProcessingDetails pdfpagedata.ProcessingDetails
+	QuestionDetails   pdfpagedata.QuestionDetails
 	Msg               *chmsg.Messager
 	PathDecoration    string //this is the "-ma1" for marker1, "mo2" for moderator 2, "d" for done etc
 }
@@ -142,7 +117,8 @@ func OverlayPapers(oc OverlayCommand) error {
 		overlayTasks = append(overlayTasks, OverlayTask{
 			InputPath:     inPath,
 			PageCount:     count,
-			NewProcessing: oc.ProcessingDetails, //do dynamic update in doOneDoc
+			NewProcessing: oc.ProcessingDetails, //do dynamic update when processing
+			NewQuestion:   oc.QuestionDetails,   //do dynamic update when processing
 			PageDataMap:   pageDataMap,
 			OutputPath:    OutputPath(oc.ToPath, inPath, oc.PathDecoration),
 			SpreadName:    oc.SpreadName,
@@ -287,6 +263,17 @@ OUTER:
 		}
 
 		pageData.Processing = append(pageData.Processing, ot.NewProcessing)
+
+		lastQ, err := pdfpagedata.SelectQuestionByLast(pageData)
+		if err != nil {
+			ot.NewQuestion.Previous = "none"
+			ot.NewQuestion.Sequence = 0
+		} else {
+			ot.NewQuestion.Previous = lastQ.UUID
+			ot.NewQuestion.Sequence = lastQ.Sequence + 1
+		}
+
+		pageData.Questions = append(pageData.Questions, ot.NewQuestion)
 
 		headerPrefills := parsesvg.DocPrefills{}
 

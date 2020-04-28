@@ -5,16 +5,14 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/timdrysdale/chmsg"
 	"github.com/timdrysdale/gradexpath"
 	"github.com/timdrysdale/pdfpagedata"
 )
 
-func TestOverlay(t *testing.T) {
+func TestAddBars(t *testing.T) {
 
 	gradexpath.SetTesting()
 
@@ -155,14 +153,8 @@ func TestOverlay(t *testing.T) {
 
 	mch := make(chan chmsg.MessageInfo)
 
-	mc := chmsg.MessagerConf{
-		ExamName:     exam,
-		FunctionName: "Overlay",
-		TaskName:     "Mark",
-	}
-
 	closed := make(chan struct{})
-
+	defer close(closed)
 	go func() {
 		for {
 			select {
@@ -175,51 +167,27 @@ func TestOverlay(t *testing.T) {
 		}
 	}()
 
-	cm := chmsg.New(mc, mch, 100*time.Millisecond)
-
-	var UUIDBytes uuid.UUID
-
-	UUIDBytes, err = uuid.NewRandom()
-	uuid := UUIDBytes.String()
-	if err != nil {
-		uuid = fmt.Sprintf("%d", time.Now().UnixNano())
-	}
-
-	procDetails := pdfpagedata.ProcessingDetails{
-		UUID:     uuid,
-		Previous: "", //dynamic / Not Implemented
-		UnixTime: time.Now().UnixNano(),
-		Name:     "MarkBars",
-		By:       pdfpagedata.ContactDetails{Name: "ingester"},
-		Sequence: 1, //dynamic
-	}
-
-	oc := OverlayCommand{
-		FromPath:          gradexpath.AnonymousPapers(exam),
-		ToPath:            gradexpath.Export(),
-		ExamName:          exam,
-		TemplatePath:      gradexpath.OverlayLayoutSVG(),
-		SpreadName:        "mark",
-		ProcessingDetails: procDetails,
-		Msg:               cm,
-		PathDecoration:    gradexpath.Marker1,
-	}
-
-	err = OverlayPapers(oc)
-	// check files exist
+	marker := "tddrysdale"
+	err = AddMarkBar(exam, marker, mch)
 
 	expectedMarker1Pdf := []string{
-		"Practice Exam Drop Box-B999995-ma1.pdf",
-		"Practice Exam Drop Box-B999997-ma1.pdf",
-		"Practice Exam Drop Box-B999998-ma1.pdf",
-		"Practice Exam Drop Box-B999999-ma1.pdf",
+		"Practice Exam Drop Box-B999995-maTDD.pdf",
+		"Practice Exam Drop Box-B999997-maTDD.pdf",
+		"Practice Exam Drop Box-B999998-maTDD.pdf",
+		"Practice Exam Drop Box-B999999-maTDD.pdf",
 	}
 
-	exportPdf, err := gradexpath.GetFileList(gradexpath.Export())
+	readyPdf, err := gradexpath.GetFileList(gradexpath.MarkerReady(exam, marker))
+
 	assert.NoError(t, err)
 
-	assert.Equal(t, len(expectedMarker1Pdf), len(exportPdf))
+	assert.Equal(t, len(expectedMarker1Pdf), len(readyPdf))
 
-	assert.True(t, gradexpath.CopyIsComplete(expectedMarker1Pdf, exportPdf))
+	assert.True(t, gradexpath.CopyIsComplete(expectedMarker1Pdf, readyPdf))
+
+	pds, err = pdfpagedata.GetPageDataFromFile(readyPdf[0])
+	assert.NoError(t, err)
+	pd = pds[0]
+	assert.Equal(t, pd[0].Questions[0].Name, "marking")
 
 }
