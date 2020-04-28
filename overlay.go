@@ -91,7 +91,7 @@ func OutputPath(dir, inPath, decoration string) string {
 	ext := filepath.Ext(inPath)
 	base := strings.TrimSuffix(filepath.Base(inPath), ext)
 
-	return filepath.Join(dir, base, decoration, ext)
+	return filepath.Join(dir, base+decoration+ext)
 
 }
 
