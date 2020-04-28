@@ -167,6 +167,7 @@ func OverlayPapers(oc OverlayCommand) error {
 		newtask := pool.NewTask(func() error {
 			pc, err := OverlayOnePdf(ot)
 			oc.Msg.Send(fmt.Sprintf("Finished processing (%s) into (%s)which had <%d> pages", ot.InputPath, ot.OutputPath, pc))
+			oc.Msg.Send(fmt.Sprintf("pages(%d)", pc))
 			return err
 		})
 		tasks = append(tasks, newtask)
@@ -276,7 +277,16 @@ OUTER:
 		}
 		pageData := ot.PageDataMap[pageNumber][0]
 
-		// TODO  UPDATE WITH PROCESSING and NEW SEQUENCE NUMBER!
+		lastProcess, err := pdfpagedata.SelectProcessByLast(pageData)
+		if err != nil {
+			ot.NewProcessing.Previous = "none"
+			ot.NewProcessing.Sequence = 0
+		} else {
+			ot.NewProcessing.Previous = lastProcess.UUID
+			ot.NewProcessing.Sequence = lastProcess.Sequence + 1
+		}
+
+		pageData.Processing = append(pageData.Processing, ot.NewProcessing)
 
 		headerPrefills := parsesvg.DocPrefills{}
 
@@ -302,7 +312,7 @@ OUTER:
 			Prefills:              headerPrefills,
 		}
 
-		err := parsesvg.RenderSpreadExtra(contents)
+		err = parsesvg.RenderSpreadExtra(contents)
 		if err != nil {
 			ot.Msg.Send(fmt.Sprintf("Error rendering spread for page <%d> of (%s) because %v\n", imgIdx, ot.InputPath, err))
 			return 0, err
