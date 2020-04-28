@@ -1,323 +1,322 @@
 package ingester
 
-//
-//import (
-//	"errors"
-//	"fmt"
-//	"os"
-//	"path/filepath"
-//	"runtime"
-//	"strings"
-//	"time"
-//
-//	"github.com/google/uuid"
-//	"github.com/timdrysdale/gradexpath"
-//	"github.com/timdrysdale/parselearn"
-//	"github.com/timdrysdale/parsesvg"
-//	"github.com/timdrysdale/pdfcomment"
-//	"github.com/timdrysdale/pdfpagedata"
-//	"github.com/timdrysdale/pool"
-//	pdf "github.com/timdrysdale/unipdf/v3/model"
-//)
-//
-//type OverlayTask struct {
-//	InputPath  string
-//	PageCount  int
-//	NewData    pdfpagedata.PageData
-//	OutputPath string
-//	SpreadName string
-//	Template   string
-//}
-//
-//func filesFrom(exam, stage) string {
-//	switch stage {
-//	case "mark":
-//		return gradexpath.AnonymousPapers(exam)
-//	case "moderate-active":
-//		return gradexpath.ModerateActivePapers(exam)
-//	case "moderate-inactive":
-//		return gradexpath.ModerateInactivePapers(exam)
-//	case "check":
-//		return gradexpath.CheckPapers(exam)
-//	default:
-//		return ""
-//	}
-//}
-//
-//func filesTo(exam, stage) string {
-//	switch stage {
-//	case "mark":
-//		return gradexpath.ToMarkPapers(exam) // consider issue of number of markers separately ... ?
-//	case "moderate-active":
-//		return gradexpath.ToModerateActivePapers(exam)
-//	case "moderate-inactive":
-//		return gradexpath.ToModerateInactivePapers(exam)
-//	case "check":
-//		return gradexpath.ToCheckPapers(exam)
-//	default:
-//		return ""
-//	}
-//}
-//
-//func OverlayPapers(exam, template, spread string) error {
-//
-//	//assume someone hits a button to ask us to do this ...
-//
-//	// we'll use this same set of procDetails for flattens that we do in this batch
-//	// that means we can use the uuid to map the processing in graphviz later, for example
-//	var UUIDBytes uuid.UUID
-//
-//	UUIDBytes, err := uuid.NewRandom()
-//	uuid := UUIDBytes.String()
-//	if err != nil {
-//		uuid = fmt.Sprintf("%d", time.Now().UnixNano())
-//	}
-//
-//	procDetails := pdfpagedata.ProcessingDetails{
-//		UUID:     uuid,
-//		Previous: "", //dynamic
-//		UnixTime: time.Now().UnixNano(),
-//		Name:     strings.TrimSuffix(filepath.Base(template), filepath.Ext(template)) + "-" + spread,
-//		By:       pdfpagedata.ContactDetails{Name: "ingester"},
-//		Sequence: "", //dynamic
-//	}
-//
-//	overlayTasks := []OverlayTask{}
-//
-//	files, err := gradexpath.GetFileList(gradexpath.A(exam))
-//	if err != nil {
-//		return err
-//	}
-//
-//	for _, receipt := range receipts {
-//
-//		sub, err := parselearn.ParseLearnReceipt(receipt)
-//		if err != nil {
-//			fmt.Printf("couldn't parse receipt %s because %v", receipt, err)
-//			continue
-//			// TODO need to flag to user as we shouldn't fail to read a learn receipt here
-//		}
-//
-//		pdfPath, err := GetPdfPath(sub.Filename, gradexpath.AcceptedPapers(exam))
-//
-//		if err != nil {
-//			fmt.Printf("couldn't get PDF filename for %s because %v\n", sub.Filename, err)
-//			continue
-//			// TODO need to flag to user as we shouldn't fail to find a PDF here
-//		}
-//
-//		count, err := countPages(pdfPath)
-//
-//		if err != nil {
-//			fmt.Printf("couldn't countPages for %s because %v\n", pdfPath, err)
-//			continue
-//			// TODO need to flag to user as we shouldn't fail to count pages here
-//		}
-//		shortDate, err := GetShortLearnDate(sub)
-//		if err != nil {
-//			fmt.Printf("couldn't get shortlearndate for %s because %v\n", receipt, err)
-//			continue
-//			// TODO need to flag to user as we shouldn't fail to read sub here
-//		}
-//
-//		//TODO If identity not known, need to flag to user, and not process paper just now
-//
-//		anonymousIdentity, err := identity.GetAnonymous(sub.Matriculation)
-//		if err != nil {
-//			fmt.Printf("couldn't get identity for for %s because %v\n", sub.Matriculation, err)
-//			continue
-//			// TODO need to flag to user as we should have all IDs in our dictionary
-//		}
-//
-//		pagedata := pdfpagedata.PageData{
-//			Exam: pdfpagedata.ExamDetails{
-//				CourseCode: sub.Assignment,
-//				Date:       shortDate,
-//			},
-//			Author: pdfpagedata.AuthorDetails{
-//				Anonymous: anonymousIdentity,
-//			},
-//			Processing: []pdfpagedata.ProcessingDetails{procDetails},
-//		}
-//
-//		renamedBase := gradexpath.GetAnonymousFileName(sub.Assignment, anonymousIdentity)
-//		outputPath := filepath.Join(gradexpath.AnonymousPapers(sub.Assignment), renamedBase)
-//
-//		flattenTasks = append(flattenTasks, FlattenTask{
-//			InputPath:  pdfPath,
-//			OutputPath: outputPath,
-//			PageCount:  count,
-//			Data:       pagedata})
-//	}
-//
-//	// now process the files
-//	N := len(flattenTasks)
-//
-//	pcChan := make(chan int, N)
-//
-//	tasks := []*pool.Task{}
-//
-//	for i := 0; i < N; i++ {
-//
-//		inputPath := flattenTasks[i].InputPath
-//		outputPath := flattenTasks[i].OutputPath
-//		pd := flattenTasks[i].Data
-//
-//		newtask := pool.NewTask(func() error {
-//			pc, err := FlattenOnePdf(inputPath, outputPath, pd)
-//			pcChan <- pc
-//			return err
-//		})
-//		tasks = append(tasks, newtask)
-//	}
-//
-//	p := pool.NewPool(tasks, runtime.GOMAXPROCS(-1))
-//
-//	closed := make(chan struct{})
-//
-//	//	h := thist.NewHist(nil, "Page count", "fixed", 10, false)
-//	//
-//	//	go func() {
-//	//	LOOP:
-//	//		for {
-//	//			select {
-//	//			case pc := <-pcChan:
-//	//				h.Update(float64(pc))
-//	//				fmt.Println(h.Draw())
-//	//			case <-closed:
-//	//				break LOOP
-//	//			}
-//	//		}
-//	//	}()
-//	//
-//	p.Run()
-//
-//	var numErrors int
-//	for _, task := range p.Tasks {
-//		if task.Err != nil {
-//			fmt.Println(task.Err)
-//			numErrors++
-//		}
-//	}
-//	close(closed)
-//
-//	return nil
-//
-//}
-//
-//func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) (int, error) {
-//
-//	if strings.ToLower(filepath.Ext(inputPath)) != ".pdf" {
-//		return 0, errors.New(fmt.Sprintf("%s does not appear to be a pdf", inputPath))
-//	}
-//
-//	// need page count to find the jpeg files again later
-//	numPages, err := countPages(inputPath)
-//
-//	// render to images
-//	jpegPath := gradexpath.AcceptedPaperImages(pageData.Exam.CourseCode)
-//
-//	suffix := filepath.Ext(inputPath)
-//	basename := strings.TrimSuffix(filepath.Base(inputPath), suffix)
-//	jpegFileOption := fmt.Sprintf("%s/%s%%04d.jpg", jpegPath, basename)
-//
-//	f, err := os.Open(inputPath)
-//	if err != nil {
-//		fmt.Println("FLATTEN Can't open pdf")
-//		return 0, err
-//	}
-//
-//	pdfReader, err := pdf.NewPdfReader(f)
-//	if err != nil {
-//		fmt.Println("FLATTEN Can't read pdf")
-//		return 0, err
-//	}
-//
-//	comments, err := pdfcomment.GetComments(pdfReader)
-//
-//	f.Close()
-//
-//	err = convertPDFToJPEGs(inputPath, jpegPath, jpegFileOption)
-//	if err != nil {
-//		return 0, err
-//	}
-//
-//	// convert images to individual pdfs, with form overlay
-//
-//	pagePath := gradexpath.AcceptedPaperPages(pageData.Exam.CourseCode)
-//	pageFileOption := fmt.Sprintf("%s/%s%%04d.pdf", pagePath, basename)
-//
-//	mergePaths := []string{}
-//
-//	pageData.Page.Of = numPages
-//
-//	// gs starts indexing at 1
-//	for imgIdx := 1; imgIdx <= numPages; imgIdx = imgIdx + 1 {
-//
-//		// construct image name
-//		previousImagePath := fmt.Sprintf(jpegFileOption, imgIdx)
-//		pageFilename := fmt.Sprintf(pageFileOption, imgIdx)
-//
-//		//TODO select Layout to suit landscape or portrait
-//		svgLayoutPath := gradexpath.FlattenLayoutSVG()
-//
-//		pageNumber := imgIdx - 1
-//
-//		pageData.Page.Number = pageNumber + 1
-//		pageData.Page.Filename = filepath.Base(pageFilename)
-//
-//		var pageUUIDBytes uuid.UUID
-//
-//		pageUUIDBytes, err = uuid.NewRandom()
-//
-//		pageUUID := pageUUIDBytes.String()
-//
-//		if err != nil {
-//			pageUUID = fmt.Sprintf("%d", time.Now().UnixNano())
-//		}
-//
-//		pageData.Page.UUID = pageUUID
-//
-//		headerPrefills := parsesvg.DocPrefills{}
-//
-//		headerPrefills[pageNumber] = make(map[string]string)
-//
-//		headerPrefills[pageNumber]["page-number"] = fmt.Sprintf("%d/%d", pageNumber+1, numPages)
-//
-//		headerPrefills[pageNumber]["author"] = pageData.Author.Anonymous
-//
-//		headerPrefills[pageNumber]["date"] = pageData.Exam.Date
-//
-//		headerPrefills[pageNumber]["title"] = pageData.Exam.CourseCode
-//
-//		contents := parsesvg.SpreadContents{
-//			SvgLayoutPath:         svgLayoutPath,
-//			SpreadName:            "flatten",
-//			PreviousImagePath:     previousImagePath,
-//			PageNumber:            pageNumber,
-//			PdfOutputPath:         pageFilename,
-//			Comments:              comments,
-//			PageData:              pageData,
-//			TemplatePathsRelative: true,
-//			Prefills:              headerPrefills,
-//		}
-//
-//		err := parsesvg.RenderSpreadExtra(contents)
-//		if err != nil {
-//			fmt.Println(err)
-//			return 0, err
-//
-//		}
-//
-//		mergePaths = append(mergePaths, pageFilename)
-//	}
-//	err = mergePdf(mergePaths, outputPath)
-//	if err != nil {
-//		fmt.Printf("MERGE: %v", err)
-//		return 0, err
-//	}
-//
-//	return numPages, nil
-//
-//}
-//
+import (
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+
+	"github.com/timdrysdale/chmsg"
+	"github.com/timdrysdale/gradexpath"
+	"github.com/timdrysdale/parsesvg"
+	"github.com/timdrysdale/pdfcomment"
+	"github.com/timdrysdale/pdfpagedata"
+	"github.com/timdrysdale/pool"
+	pdf "github.com/timdrysdale/unipdf/v3/model"
+)
+
+type OverlayTask struct {
+	InputPath     string
+	PageCount     int
+	NewProcessing pdfpagedata.ProcessingDetails
+	PageDataMap   map[int][]pdfpagedata.PageData
+	OutputPath    string
+	SpreadName    string
+	Template      string
+	Msg           *chmsg.Messager
+}
+
+/*
+// temp storage for things during overlay refactor
+func ExampleWrapperFunction() {
+
+	var UUIDBytes uuid.UUID
+
+	UUIDBytes, err := uuid.NewRandom()
+	uuid := UUIDBytes.String()
+	if err != nil {
+		uuid = fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+
+	// we'll use this same set of procDetails for flattens that we do in this batch
+	// that means we can use the uuid to map the processing in graphviz later, for example
+
+	procDetails := pdfpagedata.ProcessingDetails{
+		UUID:     uuid,
+		Previous: "", //dynamic
+		UnixTime: time.Now().UnixNano(),
+		Name:     strings.TrimSuffix(filepath.Base(template), filepath.Ext(template)) + "-" + spread,
+		By:       pdfpagedata.ContactDetails{Name: "ingester"},
+		Sequence: "", //dynamic
+	}
+
+}
+*/
+
+// Overlay command struct - for backwards compatability
+// ExamName: This is our internal system representation of the exam,
+//and MAY NOT equal the value in PageData for cosmetic reasons - hence
+//it is also not equivalent for functional reasons as this string MUST
+//exactly match our internal representation
+
+type OverlayCommand struct {
+	FromPath          string
+	ToPath            string
+	ExamName          string
+	TemplatePath      string
+	SpreadName        string
+	ProcessingDetails pdfpagedata.ProcessingDetails
+	Msg               *chmsg.Messager
+	PathDecoration    string //this is the "-ma1" for marker1, "mo2" for moderator 2, "d" for done etc
+}
+
+// This function places content - but needs a wrapper to generate that content
+// appropriately for each step
+// It will update the values of some fields in PageData with the appropriate
+// dynamically generated data
+// Read page data
+// flatten file
+// start new doc
+// import old image
+// add overlay form
+// update page data with this process' info
+// write pagedata
+// write doc
+// tell someone about it!
+
+func OutputPath(dir, inPath, decoration string) string {
+
+	ext := filepath.Ext(inPath)
+	base := strings.TrimSuffix(filepath.Base(inPath), ext)
+
+	return filepath.Join(dir, base+decoration+ext)
+
+}
+
+func OverlayPapers(oc OverlayCommand) error {
+
+	// assume someone hits a button to ask us to do this ...
+	// we'll operate on the directory that is associated with
+	// this task, for this exam
+
+	overlayTasks := []OverlayTask{}
+
+	inPaths, err := gradexpath.GetFileList(oc.FromPath)
+	if err != nil {
+		oc.Msg.Send(fmt.Sprintf("Stopping early; couldn't get files because %v\n", err))
+		return err
+	}
+
+	for _, inPath := range inPaths {
+
+		count, err := countPages(inPath)
+
+		if err != nil {
+			oc.Msg.Send(fmt.Sprintf("Skipping (%s): error counting pages because %v\n", inPath, err))
+			continue
+		}
+
+		pageDataMap, err := pdfpagedata.GetPageDataFromFile(inPath)
+
+		if err != nil {
+			oc.Msg.Send(fmt.Sprintf("Skipping (%s): error obtaining pagedata\n", inPath))
+			continue
+		}
+
+		if pdfpagedata.GetLen(pageDataMap) < 1 {
+			oc.Msg.Send(fmt.Sprintf("Skipping (%s): no pagedata in file\n", inPath))
+			continue
+		}
+
+		// clean out any old versions of the pagedata....
+		err = pdfpagedata.PruneOldRevisions(&pageDataMap)
+		if err != nil {
+			oc.Msg.Send(fmt.Sprintf("Skipping (%s): error pruning old pagedata revisions\n", inPath))
+			continue
+		}
+
+		// this is a file-level task, so we we will sort per-page updates
+		// to pageData at the child step
+		overlayTasks = append(overlayTasks, OverlayTask{
+			InputPath:     inPath,
+			PageCount:     count,
+			NewProcessing: oc.ProcessingDetails, //do dynamic update in doOneDoc
+			PageDataMap:   pageDataMap,
+			OutputPath:    OutputPath(oc.ToPath, inPath, oc.PathDecoration),
+			SpreadName:    oc.SpreadName,
+			Template:      oc.TemplatePath,
+			Msg:           oc.Msg,
+		})
+		oc.Msg.Send(fmt.Sprintf("Preparing to process: file (%s) has <%d> pages and [%d] pageDatas\n", inPath, count, pdfpagedata.GetLen(pageDataMap)))
+
+	} // for loop through all files
+
+	// now process the files
+	N := len(overlayTasks)
+
+	//pcChan := make(chan int, N)
+
+	tasks := []*pool.Task{}
+
+	for i := 0; i < N; i++ {
+
+		ot := overlayTasks[i]
+
+		newtask := pool.NewTask(func() error {
+			pc, err := OverlayOnePdf(ot)
+			oc.Msg.Send(fmt.Sprintf("Finished processing (%s) into (%s)which had <%d> pages", ot.InputPath, ot.OutputPath, pc))
+			return err
+		})
+		tasks = append(tasks, newtask)
+	}
+
+	p := pool.NewPool(tasks, runtime.GOMAXPROCS(-1))
+
+	oc.Msg.Send(fmt.Sprintf("Using parallel processing to get x%d speed-up\n", runtime.GOMAXPROCS(-1)))
+
+	closed := make(chan struct{})
+
+	p.Run()
+
+	var numErrors int
+	for _, task := range p.Tasks {
+		if task.Err != nil {
+			oc.Msg.Send(fmt.Sprintf("Processing error: %v", task.Err))
+			numErrors++
+		}
+	}
+	close(closed)
+
+	// report how we did
+	if numErrors > 0 {
+		oc.Msg.Send(fmt.Sprintf("Processing finished with overlay tasks returning <%d> errors from <%d> scripts\n", numErrors, N))
+	} else {
+		oc.Msg.Send(fmt.Sprintf("Processing finished, completed <%d> scripts\n", N))
+	}
+	return nil
+}
+
+// do one file, dynamically assembling the data we need make the latest pagedata
+// from what we get in the OverlayTask struct
+// return the number of pages
+func OverlayOnePdf(ot OverlayTask) (int, error) {
+
+	// need page count to find the jpeg files again later
+	numPages, err := countPages(ot.InputPath)
+
+	// render to images
+	// TODO - could get a panic here...
+
+	courseCode := ""
+OUTER:
+	for _, v := range ot.PageDataMap {
+		if v != nil {
+			for _, pd := range v {
+				if pd.Exam.CourseCode != "" {
+					courseCode = pd.Exam.CourseCode
+					break OUTER
+				}
+			}
+		}
+	}
+
+	if courseCode == "" {
+		ot.Msg.Send(fmt.Sprintf("Can't figure out the course code for file (%s) - not present in PageData?\n", ot.InputPath))
+		return 0, errors.New("Couldn't find a course code")
+	}
+
+	jpegPath := gradexpath.PaperImages(courseCode) //ot.PageDataMap[0].Exam.CourseCode)
+
+	suffix := filepath.Ext(ot.InputPath)
+	basename := strings.TrimSuffix(filepath.Base(ot.InputPath), suffix)
+	jpegFileOption := fmt.Sprintf("%s/%s%%04d.jpg", jpegPath, basename)
+
+	f, err := os.Open(ot.InputPath)
+	if err != nil {
+		ot.Msg.Send(fmt.Sprintf("Can't open file (%s) because: %v\n", ot.InputPath, err))
+		return 0, err
+	}
+
+	pdfReader, err := pdf.NewPdfReader(f)
+	if err != nil {
+		ot.Msg.Send(fmt.Sprintf("Can't read from file (%s) because: %v\n", ot.InputPath, err))
+		return 0, err
+	}
+
+	comments, err := pdfcomment.GetComments(pdfReader)
+
+	f.Close()
+
+	err = convertPDFToJPEGs(ot.InputPath, jpegPath, jpegFileOption)
+	if err != nil {
+		ot.Msg.Send(fmt.Sprintf("Can't flatten file (%s) to images because: %v\n", ot.InputPath, err))
+		return 0, err
+	}
+
+	// convert images to individual pdfs, with form overlay
+
+	pagePath := gradexpath.PaperPages(courseCode)
+	pageFileOption := fmt.Sprintf("%s/%s%%04d.pdf", pagePath, basename)
+
+	mergePaths := []string{}
+
+	// gs starts indexing at 1
+	for imgIdx := 1; imgIdx <= numPages; imgIdx = imgIdx + 1 {
+
+		// construct image name
+		previousImagePath := fmt.Sprintf(jpegFileOption, imgIdx)
+		pageFilename := fmt.Sprintf(pageFileOption, imgIdx)
+
+		pageNumber := imgIdx - 1 //imgIdx starts 1 (books), pageNumber starts at 0 (computers!)
+
+		if len(ot.PageDataMap[pageNumber]) < 1 {
+			ot.Msg.Send(fmt.Sprintf("Info: no existing page data for file (%s) on page <%d>\n", ot.InputPath, imgIdx))
+		}
+		pageData := ot.PageDataMap[pageNumber][0]
+
+		// TODO  UPDATE WITH PROCESSING and NEW SEQUENCE NUMBER!
+
+		headerPrefills := parsesvg.DocPrefills{}
+
+		headerPrefills[pageNumber] = make(map[string]string)
+
+		headerPrefills[pageNumber]["page-number"] = fmt.Sprintf("%d/%d", pageNumber+1, numPages)
+
+		headerPrefills[pageNumber]["author"] = pageData.Author.Anonymous
+
+		headerPrefills[pageNumber]["date"] = pageData.Exam.Date
+
+		headerPrefills[pageNumber]["title"] = pageData.Exam.CourseCode
+
+		contents := parsesvg.SpreadContents{
+			SvgLayoutPath:         ot.Template,
+			SpreadName:            ot.SpreadName,
+			PreviousImagePath:     previousImagePath,
+			PageNumber:            pageNumber,
+			PdfOutputPath:         pageFilename,
+			Comments:              comments,
+			PageData:              pageData,
+			TemplatePathsRelative: true,
+			Prefills:              headerPrefills,
+		}
+
+		err := parsesvg.RenderSpreadExtra(contents)
+		if err != nil {
+			ot.Msg.Send(fmt.Sprintf("Error rendering spread for page <%d> of (%s) because %v\n", imgIdx, ot.InputPath, err))
+			return 0, err
+
+		}
+
+		mergePaths = append(mergePaths, pageFilename)
+	}
+	err = mergePdf(mergePaths, ot.OutputPath)
+	if err != nil {
+		ot.Msg.Send(fmt.Sprintf("Error merging processed pages for (%s) because %v\n", ot.InputPath, err))
+		return 0, err
+	}
+	ot.Msg.Send(fmt.Sprintf("Finished rendering [%s] overlay for (%s) which had <%d> pages\n", ot.SpreadName, ot.InputPath, ot.PageCount))
+	return numPages, nil
+
+}
