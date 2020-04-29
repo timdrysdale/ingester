@@ -172,6 +172,7 @@ func TestAddBars(t *testing.T) {
 	marker := "tddrysdale"
 	err = AddMarkBar(exam, marker, mch)
 	assert.NoError(t, err)
+
 	expectedMarker1Pdf := []string{
 		"Practice Exam Drop Box-B999995-maTDD.pdf",
 		"Practice Exam Drop Box-B999997-maTDD.pdf",
@@ -226,6 +227,7 @@ func TestAddBars(t *testing.T) {
 		"Practice Exam Drop Box-B999998-maTDD-moX.pdf",
 		"Practice Exam Drop Box-B999999-maTDD-moX.pdf",
 	}
+
 	inActivePdf, err := gradexpath.GetFileList(gradexpath.ModeratedInActiveBack(exam))
 	assert.NoError(t, err)
 
