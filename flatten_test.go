@@ -7,10 +7,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/timdrysdale/gradexpath"
+	"github.com/timdrysdale/pdfpagedata"
 )
 
-func TestValidate(t *testing.T) {
-
+func TestFlatten(t *testing.T) {
 	gradexpath.SetTesting()
 
 	root := gradexpath.Root()
@@ -29,8 +29,6 @@ func TestValidate(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	//fmt.Println(testfiles)
-
 	for _, file := range testfiles {
 		destination := filepath.Join(gradexpath.Ingest(), filepath.Base(file))
 		err := gradexpath.Copy(file, destination)
@@ -38,7 +36,15 @@ func TestValidate(t *testing.T) {
 
 	}
 
-	//fmt.Println(gradexpath.Ingest())
+	templateFiles, err := gradexpath.GetFileList("./test-fs/etc/ingest/template")
+	assert.NoError(t, err)
+
+	for _, file := range templateFiles {
+		destination := filepath.Join(gradexpath.IngestTemplate(), filepath.Base(file))
+		err := gradexpath.Copy(file, destination)
+		assert.NoError(t, err)
+	}
+
 	ingestfiles, err := gradexpath.GetFileList(gradexpath.Ingest())
 	assert.NoError(t, err)
 
@@ -73,8 +79,6 @@ func TestValidate(t *testing.T) {
 	assert.True(t, len(expectedPdf) == len(actualPdf))
 	assert.True(t, gradexpath.CopyIsComplete(expectedPdf, actualPdf))
 
-	// now we test validate!
-
 	assert.NoError(t, ValidateNewPapers())
 
 	exam := "Practice Exam Drop Box"
@@ -96,5 +100,41 @@ func TestValidate(t *testing.T) {
 	tempTxt, err := gradexpath.GetFileList(gradexpath.TempTxt())
 	assert.NoError(t, err)
 	assert.Equal(t, len(tempTxt), 0)
+
+	// Now we test Flatten
+
+	//copy in the identity database
+	src := "./test-fs/etc/identity/identity.csv"
+	dest := "./tmp-delete-me/etc/identity/identity.csv"
+	err = gradexpath.Copy(src, dest)
+	assert.NoError(t, err)
+	_, err = os.Stat(dest)
+
+	// do flatten
+	err = FlattenNewPapers("Practice Exam Drop Box")
+	assert.NoError(t, err)
+
+	// check files exist
+
+	expectedAnonymousPdf := []string{
+		"Practice Exam Drop Box-B999995.pdf",
+		"Practice Exam Drop Box-B999997.pdf",
+		"Practice Exam Drop Box-B999998.pdf",
+		"Practice Exam Drop Box-B999999.pdf",
+	}
+
+	anonymousPdf, err := gradexpath.GetFileList(gradexpath.AnonymousPapers(exam))
+	assert.NoError(t, err)
+
+	assert.Equal(t, len(anonymousPdf), len(expectedAnonymousPdf))
+
+	assert.True(t, gradexpath.CopyIsComplete(expectedAnonymousPdf, anonymousPdf))
+
+	// check data extraction
+
+	pds, err := pdfpagedata.GetPageDataFromFile(anonymousPdf[0])
+	assert.NoError(t, err)
+	pd := pds[0]
+	assert.Equal(t, pd[0].Exam.CourseCode, "Practice Exam Drop Box")
 
 }
