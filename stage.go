@@ -36,11 +36,7 @@ LOOP:
 					return err
 				}
 			case gradexpath.IsPdf(path):
-
-				gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.TempPdf())
-				if err != nil {
-					return err
-				}
+				handleIngestPdf(path)
 			}
 
 			return nil
@@ -54,17 +50,14 @@ LOOP:
 		}
 	}
 
+	// TODO check raw pdf?
+
 	//TODO some reporting on what is left over? or another tool can do that?
 	// and overall file system status tool?
 	return nil
 }
 
 func handleIngestArchive(archivePath string) error {
-	//suffix := filepath.Ext(archivePath)
-	//archiveBase := filepath.Base(archivePath)
-	//archiveName := strings.TrimSuffix(archiveBase, suffix)
-	//temploc := fmt.Sprintf("tmp-unarchive-%s", strings.Replace(archiveName, " ", "", -1))
-	//extractPath := filepath.Join(gradexpath.Ingest(), temploc)
 	err := archiver.Unarchive(archivePath, gradexpath.Ingest())
 	if err != nil {
 		return err
@@ -72,3 +65,34 @@ func handleIngestArchive(archivePath string) error {
 	err = os.Remove(archivePath)
 	return err
 }
+
+func handleIngestPdf(path string) error {
+	return gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.TempPdf())
+}
+
+/*
+		if err != nil {
+			return err
+		}
+
+	switch GetProcessingStage(path) {
+
+	case Raw:
+		gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.TempPdf())
+		if err != nil {
+			return err
+		}
+	case ReadyToMark:
+		exam := pdfpagedata.GetExam(path)
+		marker := pdfpagedata.GetLatestMarker(path)
+		gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.ReadyToMark(exam, marker))
+		if err != nil {
+			return err
+		}
+	case Marked:
+	case ReadyToModerate:
+	case Moderated:
+	case ReadyToCheck:
+	case Checked:
+
+	}*/
