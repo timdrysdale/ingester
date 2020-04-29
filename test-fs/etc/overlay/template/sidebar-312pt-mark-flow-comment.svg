@@ -16,7 +16,7 @@
    id="svg8"
    inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
    sodipodi:docname="sidebar-312pt-mark-flow-comment.svg"
-   inkscape:export-filename="/home/tim/go/src/github.com/timdrysdale/gradex-overlay/test/sidebar-312pt-mark-flow-comment.png"
+   inkscape:export-filename="/home/tim/tg/ingester/test-fs/etc/overlay/template/sidebar-312pt-mark-flow-comment.png"
    inkscape:export-xdpi="299.8107"
    inkscape:export-ydpi="299.8107">
   <title
@@ -551,16 +551,16 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.391398"
-     inkscape:cx="218.75181"
-     inkscape:cy="379.5415"
+     inkscape:zoom="1.565592"
+     inkscape:cx="-78.260438"
+     inkscape:cy="940.67109"
      inkscape:document-units="mm"
      inkscape:current-layer="layer3"
      showgrid="false"
-     inkscape:window-width="1920"
-     inkscape:window-height="1163"
-     inkscape:window-x="1920"
-     inkscape:window-y="0"
+     inkscape:window-width="1850"
+     inkscape:window-height="1136"
+     inkscape:window-x="70"
+     inkscape:window-y="27"
      inkscape:window-maximized="1"
      inkscape:snap-global="true"
      showguides="false"
@@ -599,8 +599,8 @@
        height="312"
        x="-1.0404376e-14"
        y="0"
-       rx="1.0412993"
-       ry="0.61754012" />
+       rx="0"
+       ry="0" />
     <rect
        ry="2.3146861"
        y="57.320824"
@@ -1051,18 +1051,16 @@
      inkscape:groupmode="layer"
      id="layer3"
      inkscape:label="anchors"
-     style="display:none"
-     sodipodi:insensitive="true">
+     style="display:none">
     <path
-       transform="translate(-209.97531)"
        sodipodi:open="true"
-       d="m 210.08185,-3.9421302 a 3.9435091,3.9435091 0 0 1 3.83631,4.0143207 3.9435091,3.9435091 0 0 1 -3.9808,3.8710754 3.9435091,3.9435091 0 0 1 -3.90556,-3.9469813 3.9435091,3.9435091 0 0 1 3.91287,-3.9397352"
+       d="M 0.10654231,-3.9421291 A 3.9435091,3.9435091 0 0 1 3.9428472,0.07219154 3.9435091,3.9435091 0 0 1 -0.03795439,3.9432669 3.9435091,3.9435091 0 0 1 -3.9435074,-0.00371436 3.9435091,3.9435091 0 0 1 -0.03064502,-3.9434496"
        sodipodi:end="4.7046179"
        sodipodi:start="4.7394094"
        sodipodi:ry="3.9435091"
        sodipodi:rx="3.9435091"
-       sodipodi:cy="-6.0582519e-05"
-       sodipodi:cx="209.97531"
+       sodipodi:cy="-5.9536524e-05"
+       sodipodi:cx="0"
        sodipodi:type="arc"
        id="path1055"
        style="opacity:1;fill:#00ff00;fill-opacity:1;stroke:none;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:1">

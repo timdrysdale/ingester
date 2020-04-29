@@ -2216,7 +2216,7 @@
        gradientUnits="userSpaceOnUse"
        x="0"
        y="0.37499997"
-       gradientTransform="matrix(1.0064872,0,0,1.0012034,0,-0.37545123)">
+       gradientTransform="matrix(1.0139152,0,0,1.0012034,0,-0.37545123)">
       <meshrow
          id="meshrow17793">
         <meshpatch
@@ -4063,9 +4063,9 @@
      inkscape:pageshadow="2"
      inkscape:zoom="1.1070407"
      inkscape:cx="701.94986"
-     inkscape:cy="1078.9816"
+     inkscape:cy="898.31981"
      inkscape:document-units="mm"
-     inkscape:current-layer="layer3"
+     inkscape:current-layer="layer6"
      showgrid="false"
      inkscape:window-width="1850"
      inkscape:window-height="1136"
@@ -4100,9 +4100,9 @@
        y="-2.9802266e-08"
        x="0.47800109"
        height="312"
-       width="323"
+       width="325"
        id="rect3919"
-       style="opacity:1;fill:#b9ffab;fill-opacity:0.55868542;stroke:none;stroke-width:0.50468063;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:1">
+       style="opacity:1;fill:#b9ffab;fill-opacity:0.55868542;stroke:none;stroke-width:0.50624073;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:1">
       <title
          id="title3917">page-static-moderate-active</title>
     </rect>
@@ -4119,9 +4119,9 @@
          id="title31451">page-static-moderate-inactive</title>
     </rect>
     <rect
-       style="opacity:1;fill:url(#meshgradient17791);fill-opacity:1;stroke:none;stroke-width:0.50192088;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:1"
+       style="opacity:1;fill:url(#meshgradient17791);fill-opacity:1;stroke:none;stroke-width:0.50376958;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:1"
        id="rect3913"
-       width="271"
+       width="273"
        height="312"
        x="0"
        y="0"
@@ -4149,12 +4149,12 @@
      inkscape:label="images"
      style="display:inline">
     <rect
-       style="display:inline;opacity:0.98000004;fill:none;fill-opacity:0.47417842;stroke:#03bb17;stroke-width:0.09992147;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:0.72941176"
+       style="display:inline;opacity:0.98000004;fill:none;fill-opacity:0.47417842;stroke:#03bb17;stroke-width:0.10028952;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:0.72941176"
        id="rect11652"
-       width="270.90009"
-       height="311.90005"
-       x="0.0026074385"
-       y="0.09729749"
+       width="272.89972"
+       height="311.89969"
+       x="0.0027914604"
+       y="0.097481467"
        rx="0.16995271"
        ry="0.16995271">
       <desc
@@ -4165,12 +4165,12 @@
     <rect
        ry="0"
        rx="0"
-       y="0.09755706"
-       x="0.0024092859"
-       height="311.90002"
-       width="270.90002"
+       y="0.09774112"
+       x="0.0025933897"
+       height="311.89966"
+       width="272.89966"
        id="rect19267"
-       style="display:inline;opacity:0.98000004;fill:none;fill-opacity:0.47417842;stroke:#03bb17;stroke-width:0.09996522;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:0.72941176">
+       style="display:inline;opacity:0.98000004;fill:none;fill-opacity:0.47417842;stroke:#03bb17;stroke-width:0.10033343;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:0.72941176">
       <desc
          id="desc33193">this is the size of the page with the marking sidebar</desc>
       <title
@@ -4242,13 +4242,13 @@
        style="display:inline;opacity:1;fill:#038600;fill-opacity:1;stroke:none;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:1"
        id="path3875"
        sodipodi:type="arc"
-       sodipodi:cx="271"
+       sodipodi:cx="273"
        sodipodi:cy="-5.9536524e-05"
        sodipodi:rx="3.9435091"
        sodipodi:ry="3.9435091"
        sodipodi:start="4.7394094"
        sodipodi:end="4.7046179"
-       d="m 271.10654,-3.9421291 a 3.9435091,3.9435091 0 0 1 3.83631,4.01432064 3.9435091,3.9435091 0 0 1 -3.9808,3.87107536 3.9435091,3.9435091 0 0 1 -3.90556,-3.94698126 3.9435091,3.9435091 0 0 1 3.91286,-3.93973524"
+       d="m 273.10654,-3.9421291 a 3.9435091,3.9435091 0 0 1 3.83631,4.01432064 3.9435091,3.9435091 0 0 1 -3.9808,3.87107536 3.9435091,3.9435091 0 0 1 -3.90556,-3.94698126 3.9435091,3.9435091 0 0 1 3.91286,-3.93973524"
        sodipodi:open="true">
       <desc
          id="desc3946">sidebar-312pt-moderate-flow-comment-active</desc>
@@ -4257,13 +4257,13 @@
     </path>
     <path
        sodipodi:open="true"
-       d="m 270.95756,-1.9334674 a 2.0314758,2.0314758 0 0 1 1.97625,2.06795395 2.0314758,2.0314758 0 0 1 -2.05068,1.99416195 2.0314758,2.0314758 0 0 1 -2.01193,-2.03326444 2.0314758,2.0314758 0 0 1 2.01569,-2.02953166"
+       d="m 272.95756,-1.9334674 a 2.0314758,2.0314758 0 0 1 1.97625,2.06795395 2.0314758,2.0314758 0 0 1 -2.05068,1.99416195 2.0314758,2.0314758 0 0 1 -2.01193,-2.03326444 2.0314758,2.0314758 0 0 1 2.01569,-2.02953166"
        sodipodi:end="4.7046179"
        sodipodi:start="4.7394094"
        sodipodi:ry="2.0314758"
        sodipodi:rx="2.0314758"
        sodipodi:cy="0.097266823"
-       sodipodi:cx="270.90268"
+       sodipodi:cx="272.90268"
        sodipodi:type="arc"
        id="path17772"
        style="display:inline;opacity:1;fill:#7f7f7f;fill-opacity:1;stroke:none;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:1">
@@ -4276,13 +4276,13 @@
        style="display:inline;opacity:1;fill:#ed1a1f;fill-opacity:1;stroke:none;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:9.44881821;stroke-opacity:1"
        id="path20385"
        sodipodi:type="arc"
-       sodipodi:cx="227.81073"
+       sodipodi:cx="231.31073"
        sodipodi:cy="0.087472938"
        sodipodi:rx="3.9435091"
        sodipodi:ry="3.9435091"
        sodipodi:start="4.7394094"
        sodipodi:end="4.7046179"
-       d="m 227.91727,-3.8545967 a 3.9435091,3.9435091 0 0 1 3.83631,4.01432072 3.9435091,3.9435091 0 0 1 -3.9808,3.87107538 3.9435091,3.9435091 0 0 1 -3.90556,-3.94698128 3.9435091,3.9435091 0 0 1 3.91286,-3.93973522"
+       d="m 231.41727,-3.8545967 a 3.9435091,3.9435091 0 0 1 3.83631,4.01432072 3.9435091,3.9435091 0 0 1 -3.9808,3.87107538 3.9435091,3.9435091 0 0 1 -3.90556,-3.94698128 3.9435091,3.9435091 0 0 1 3.91286,-3.93973522"
        sodipodi:open="true">
       <desc
          id="desc20381">sidebar-312pt-mark-flow-comment</desc>
