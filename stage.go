@@ -4,11 +4,29 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mholt/archiver"
 	"github.com/timdrysdale/gradexpath"
 	"github.com/timdrysdale/pdfpagedata"
 )
+
+func CleanFromIngest() error {
+	files, err := gradexpath.GetFileList(gradexpath.Ingest())
+	if err != nil {
+		return err
+	}
+	errorCache := error(nil)
+
+	for _, file := range files {
+		err = os.Remove(file)
+		if err != nil {
+			//count errors?
+			errorCache = err
+		}
+	}
+	return errorCache
+}
 
 // wait for user to press an "do ingest button", then filewalk to get the paths
 func StageFromIngest() error {
@@ -39,6 +57,9 @@ LOOP:
 				}
 			case gradexpath.IsPdf(path):
 				handleIngestPdf(path)
+
+			case gradexpath.IsCsv(path):
+				handleIngestCsv(path)
 			}
 
 			return nil
@@ -68,6 +89,17 @@ func handleIngestArchive(archivePath string) error {
 	return err
 }
 
+func handleIngestCsv(path string) error {
+	if strings.ToLower(filepath.Base(path)) == "identity.csv" {
+		return gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.IngestConf())
+	}
+	return nil
+	// leave file in ingest if not newer - to overwrite current file with an older version
+	// e.g. to roll back a change, you have to roll forward by modifying the old file,
+	// saving it to get a new modtime (can change back the mod before ingesting if needed)
+	// just need the new mod time on the file
+}
+
 func handleIngestPdf(path string) error {
 	//return gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.TempPdf())
 
@@ -86,8 +118,16 @@ func handleIngestPdf(path string) error {
 
 	switch t.ToDo {
 
-	case "marking":
+	case "flattening":
 
+		// these aren't usually exported, but we may be repopulating a new ingester or
+		// manually correcting something, so we consider our options
+		origin := gradexpath.AnonymousPapers(t.CourseCode)
+		return gradexpath.MoveIfNewerThanDestinationInDir(path, origin)
+		// leave the file in ingest if we don't want it
+
+	case "marking":
+		// these could be marked, or just being returned by DSA if prematurely exported
 		origin := gradexpath.MarkerSent(t.CourseCode, t.PreparedFor)
 
 		preOrigin := gradexpath.MarkerReady(t.CourseCode, t.PreparedFor)
