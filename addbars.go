@@ -125,3 +125,61 @@ func AddModerateActiveBar(exam string, moderator string, mch chan chmsg.MessageI
 
 	return err
 }
+
+func AddModerateInActiveBar(exam string, mch chan chmsg.MessageInfo) error {
+
+	mc := chmsg.MessagerConf{
+		ExamName:     exam,
+		FunctionName: "overlay",
+		TaskName:     "add-moderate-inactive-bar",
+	}
+
+	cm := chmsg.New(mc, mch, 100*time.Millisecond)
+
+	var UUIDBytes uuid.UUID
+
+	UUIDBytes, err := uuid.NewRandom()
+	uuidStr := UUIDBytes.String()
+	if err != nil {
+		uuidStr = fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+
+	procDetails := pdfpagedata.ProcessingDetails{
+		UUID:     uuidStr,
+		Previous: "", //dynamic
+		UnixTime: time.Now().UnixNano(),
+		Name:     "moderate-inactive-bar",
+		By:       pdfpagedata.ContactDetails{Name: "ingester"},
+		Sequence: 0, //dynamic
+	}
+
+	UUIDBytes, err = uuid.NewRandom()
+	uuidStr = UUIDBytes.String()
+	if err != nil {
+		uuidStr = fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+
+	markDetails := pdfpagedata.QuestionDetails{
+		UUID:     uuidStr,
+		Name:     "moderating",
+		UnixTime: time.Now().UnixNano(),
+	}
+
+	oc := OverlayCommand{
+		FromPath:          gradexpath.ModerateInActive(exam),
+		ToPath:            gradexpath.ModeratedInActiveBack(exam),
+		ExamName:          exam,
+		TemplatePath:      gradexpath.OverlayLayoutSVG(),
+		SpreadName:        "moderate-inactive",
+		ProcessingDetails: procDetails,
+		QuestionDetails:   markDetails,
+		Msg:               cm,
+		PathDecoration:    gradexpath.ModeratorABCDecoration("X"),
+	}
+
+	err = OverlayPapers(oc)
+
+	cm.Send(fmt.Sprintf("Finished Processing add-moderate-inactive UUID=%s\n", uuidStr))
+
+	return err
+}

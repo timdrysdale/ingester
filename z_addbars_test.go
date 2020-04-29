@@ -216,13 +216,19 @@ func TestAddBars(t *testing.T) {
 	assert.Equal(t, len(expectedActive), len(activePdf))
 
 	assert.True(t, gradexpath.CopyIsComplete(expectedActive, activePdf))
-	/*
-		err = AddModerateInActiveBar(exam, mch)
-		assert.NoError(t, err)
 
-		expectedInActive := []string{ //note the d is missing for convenience here
-			"Practice Exam Drop Box-B999998-maTDD-moABC.pdf",
-			"Practice Exam Drop Box-B999999-maTDD-moABC.pdf",
-		}*/
+	err = AddModerateInActiveBar(exam, mch)
+	assert.NoError(t, err)
+
+	expectedInActive := []string{ //note the d is missing for convenience here
+		"Practice Exam Drop Box-B999998-maTDD-moX.pdf",
+		"Practice Exam Drop Box-B999999-maTDD-moX.pdf",
+	}
+	inActivePdf, err := gradexpath.GetFileList(gradexpath.ModeratedInActiveBack(exam))
+	assert.NoError(t, err)
+
+	assert.Equal(t, len(expectedInActive), len(inActivePdf))
+
+	assert.True(t, gradexpath.CopyIsComplete(expectedInActive, inActivePdf))
 
 }
