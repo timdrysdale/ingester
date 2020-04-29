@@ -15,7 +15,7 @@ func AddMarkBar(exam string, marker string, mch chan chmsg.MessageInfo) error {
 	mc := chmsg.MessagerConf{
 		ExamName:     exam,
 		FunctionName: "overlay",
-		TaskName:     "markbar",
+		TaskName:     "add-mark-bar",
 	}
 
 	cm := chmsg.New(mc, mch, 100*time.Millisecond)
@@ -32,7 +32,7 @@ func AddMarkBar(exam string, marker string, mch chan chmsg.MessageInfo) error {
 		UUID:     uuidStr,
 		Previous: "", //dynamic
 		UnixTime: time.Now().UnixNano(),
-		Name:     "markbar",
+		Name:     "mark-bar",
 		By:       pdfpagedata.ContactDetails{Name: "ingester"},
 		Sequence: 0, //dynamic
 	}
@@ -68,48 +68,60 @@ func AddMarkBar(exam string, marker string, mch chan chmsg.MessageInfo) error {
 	return err
 }
 
-/*
-func AddMarkBar() {
-}
+func AddModerateActiveBar(exam string, moderator string, mch chan chmsg.MessageInfo) error {
 
-func AddModActiveBar() {
-}
-
-func AddModInActiveBar() {
-}
-
-func AddCheckBar() {
-}
-
-//TODO ensure/add these paths to gradexpath
-func FilesFrom(exam, stage string) {
-	switch stage {
-	case "mark":
-		return gradexpath.AnonymousPapers(exam)
-	case "moderate-active":
-		return gradexpath.ModerateActivePapers(exam)
-	case "moderate-inactive":
-		return gradexpath.ModerateInactivePapers(exam)
-	case "check":
-		return gradexpath.CheckPapers(exam)
-	default:
-		return ""
+	mc := chmsg.MessagerConf{
+		ExamName:     exam,
+		FunctionName: "overlay",
+		TaskName:     "add-moderate-active-bar",
 	}
-}
 
-//TODO ensure/add these paths to gradexpath
-func FilesTo(exam, stage string) {
-	switch stage {
-	case "mark":
-		return gradexpath.ToMarkPapers(exam) // consider issue of number of markers separately ... ?
-	case "moderate-active":
-		return gradexpath.ToModerateActivePapers(exam)
-	case "moderate-inactive":
-		return gradexpath.ToModerateInactivePapers(exam)
-	case "check":
-		return gradexpath.ToCheckPapers(exam)
-	default:
-		return ""
+	cm := chmsg.New(mc, mch, 100*time.Millisecond)
+
+	var UUIDBytes uuid.UUID
+
+	UUIDBytes, err := uuid.NewRandom()
+	uuidStr := UUIDBytes.String()
+	if err != nil {
+		uuidStr = fmt.Sprintf("%d", time.Now().UnixNano())
 	}
+
+	procDetails := pdfpagedata.ProcessingDetails{
+		UUID:     uuidStr,
+		Previous: "", //dynamic
+		UnixTime: time.Now().UnixNano(),
+		Name:     "moderate-active-bar",
+		By:       pdfpagedata.ContactDetails{Name: "ingester"},
+		Sequence: 0, //dynamic
+	}
+
+	UUIDBytes, err = uuid.NewRandom()
+	uuidStr = UUIDBytes.String()
+	if err != nil {
+		uuidStr = fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+
+	markDetails := pdfpagedata.QuestionDetails{
+		UUID:     uuidStr,
+		Name:     "moderating",
+		UnixTime: time.Now().UnixNano(),
+	}
+
+	oc := OverlayCommand{
+		FromPath:          gradexpath.ModerateActive(exam),
+		ToPath:            gradexpath.ModeratorReady(exam, moderator),
+		ExamName:          exam,
+		TemplatePath:      gradexpath.OverlayLayoutSVG(),
+		SpreadName:        "moderate-active",
+		ProcessingDetails: procDetails,
+		QuestionDetails:   markDetails,
+		Msg:               cm,
+		PathDecoration:    gradexpath.ModeratorABCDecoration(moderator),
+	}
+
+	err = OverlayPapers(oc)
+
+	cm.Send(fmt.Sprintf("Finished Processing add-moderate-active UUID=%s\n", uuidStr))
+
+	return err
 }
-*/

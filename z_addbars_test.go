@@ -169,7 +169,7 @@ func TestAddBars(t *testing.T) {
 
 	marker := "tddrysdale"
 	err = AddMarkBar(exam, marker, mch)
-
+	assert.NoError(t, err)
 	expectedMarker1Pdf := []string{
 		"Practice Exam Drop Box-B999995-maTDD.pdf",
 		"Practice Exam Drop Box-B999997-maTDD.pdf",
@@ -189,5 +189,40 @@ func TestAddBars(t *testing.T) {
 	assert.NoError(t, err)
 	pd = pds[0]
 	assert.Equal(t, pd[0].Questions[0].Name, "marking")
+
+	for _, file := range readyPdf[0:2] {
+		destination := filepath.Join(gradexpath.ModerateActive(exam), filepath.Base(file))
+		err := gradexpath.Copy(file, destination)
+		assert.NoError(t, err)
+	}
+	for _, file := range readyPdf[2:4] {
+		destination := filepath.Join(gradexpath.ModerateInActive(exam), filepath.Base(file))
+		err := gradexpath.Copy(file, destination)
+		assert.NoError(t, err)
+	}
+
+	moderator := "ABC"
+	err = AddModerateActiveBar(exam, moderator, mch)
+	assert.NoError(t, err)
+
+	expectedActive := []string{ //note the d is missing for convenience here
+		"Practice Exam Drop Box-B999995-maTDD-moABC.pdf",
+		"Practice Exam Drop Box-B999997-maTDD-moABC.pdf",
+	}
+
+	activePdf, err := gradexpath.GetFileList(gradexpath.ModeratorReady(exam, moderator))
+	assert.NoError(t, err)
+
+	assert.Equal(t, len(expectedActive), len(activePdf))
+
+	assert.True(t, gradexpath.CopyIsComplete(expectedActive, activePdf))
+	/*
+		err = AddModerateInActiveBar(exam, mch)
+		assert.NoError(t, err)
+
+		expectedInActive := []string{ //note the d is missing for convenience here
+			"Practice Exam Drop Box-B999998-maTDD-moABC.pdf",
+			"Practice Exam Drop Box-B999999-maTDD-moABC.pdf",
+		}*/
 
 }
