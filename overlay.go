@@ -268,6 +268,8 @@ OUTER:
 			ot.NewProcessing.Sequence = lastProcess.Sequence + 1
 		}
 
+		pageData.ToDo = ot.ToDo
+		pageData.PreparedFor = ot.PreparedFor
 		pageData.Processing = append(pageData.Processing, ot.NewProcessing)
 
 		lastQ, err := pdfpagedata.SelectQuestionByLast(pageData)
