@@ -105,6 +105,9 @@ func FlattenNewPapers(exam string) error {
 		}
 
 		pagedata := pdfpagedata.PageData{
+			ToDo:        "flattening",
+			PreparedFor: "ingester",
+
 			Exam: pdfpagedata.ExamDetails{
 				CourseCode: sub.Assignment,
 				Date:       shortDate,
