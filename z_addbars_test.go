@@ -231,4 +231,50 @@ func TestAddBars(t *testing.T) {
 
 	assert.True(t, gradexpath.CopyIsComplete(expectedInActive, inActivePdf))
 
+	// copy files to common area (as if have processed them - not checked here)
+
+	for _, file := range activePdf {
+		destination := filepath.Join(gradexpath.ModeratedReady(exam), filepath.Base(file))
+		err := gradexpath.Copy(file, destination)
+		assert.NoError(t, err)
+	}
+
+	for _, file := range inActivePdf {
+		destination := filepath.Join(gradexpath.ModeratedReady(exam), filepath.Base(file))
+		err := gradexpath.Copy(file, destination)
+		assert.NoError(t, err)
+	}
+
+	expectedModeratedReadyPdf := []string{ //note the d is missing for convenience here
+		"Practice Exam Drop Box-B999995-maTDD-moABC.pdf",
+		"Practice Exam Drop Box-B999997-maTDD-moABC.pdf",
+		"Practice Exam Drop Box-B999998-maTDD-moX.pdf",
+		"Practice Exam Drop Box-B999999-maTDD-moX.pdf",
+	}
+
+	moderatedReadyPdf, err := gradexpath.GetFileList(gradexpath.ModeratedReady(exam))
+	assert.NoError(t, err)
+
+	assert.Equal(t, len(expectedModeratedReadyPdf), len(moderatedReadyPdf))
+
+	assert.True(t, gradexpath.CopyIsComplete(expectedModeratedReadyPdf, moderatedReadyPdf))
+
+	checker := "LD"
+
+	err = AddCheckBar(exam, checker, mch)
+	assert.NoError(t, err)
+	expectedChecked := []string{ //note the d is missing for convenience here
+		"Practice Exam Drop Box-B999995-maTDD-moABC-cLD.pdf",
+		"Practice Exam Drop Box-B999997-maTDD-moABC-cLD.pdf",
+		"Practice Exam Drop Box-B999998-maTDD-moX-cLD.pdf",
+		"Practice Exam Drop Box-B999999-maTDD-moX-cLD.pdf",
+	}
+
+	checkedPdf, err := gradexpath.GetFileList(gradexpath.CheckerReady(exam, checker))
+	assert.NoError(t, err)
+
+	assert.Equal(t, len(expectedChecked), len(checkedPdf))
+
+	assert.True(t, gradexpath.CopyIsComplete(expectedChecked, checkedPdf))
+
 }
