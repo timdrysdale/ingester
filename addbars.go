@@ -10,6 +10,31 @@ import (
 	"github.com/timdrysdale/pdfpagedata"
 )
 
+//type QuestionDetails struct {
+//	UUID           string            `json:"UUID"`
+//	Name           string            `json:"name"` //what to call it in a dropbox etc
+//	Section        string            `json:"section"`
+//	Number         int               `json:"number"` //No Harry Potter Platform 9&3/4 questions
+//	Parts          []QuestionDetails `json:"parts"`
+//	MarksAvailable float64           `json:"marksAvailable"`
+//	MarksAwarded   float64           `json:"marksAwarded"`
+//	Marking        []MarkingAction   `json:"markers"`
+//	Moderating     []MarkingAction   `json:"moderators"`
+//	Checking       []MarkingAction   `json:"checkers"`
+//	Sequence       int               `json:"sequence"`
+//	UnixTime       int64             `json:"unixTime"`
+//	Previous       string            `json:"previous"`
+//}
+//
+//type MarkingAction struct {
+//	Actor    string         `json:"actor"`
+//	Contact  ContactDetails `json:"contact"`
+//	Mark     MarkDetails    `json:"mark"`
+//	Done     bool           `json:"done"`
+//	UnixTime int64          `json:"unixTime"`
+//	Custom   CustomDetails  `json:"custom"`
+//}
+
 func AddMarkBar(exam string, marker string, mch chan chmsg.MessageInfo) error {
 
 	mc := chmsg.MessagerConf{
@@ -47,9 +72,16 @@ func AddMarkBar(exam string, marker string, mch chan chmsg.MessageInfo) error {
 		UUID:     uuidStr,
 		Name:     "marking",
 		UnixTime: time.Now().UnixNano(),
+		Marking: []pdfpagedata.MarkingAction{
+			pdfpagedata.MarkingAction{
+				Actor: marker,
+			},
+		},
 	}
 
 	oc := OverlayCommand{
+		PreparedFor:       marker,
+		ToDo:              "marking",
 		FromPath:          gradexpath.AnonymousPapers(exam),
 		ToPath:            gradexpath.MarkerReady(exam, marker),
 		ExamName:          exam,
@@ -105,9 +137,16 @@ func AddModerateActiveBar(exam string, moderator string, mch chan chmsg.MessageI
 		UUID:     uuidStr,
 		Name:     "moderating",
 		UnixTime: time.Now().UnixNano(),
+		Moderating: []pdfpagedata.MarkingAction{
+			pdfpagedata.MarkingAction{
+				Actor: moderator,
+			},
+		},
 	}
 
 	oc := OverlayCommand{
+		PreparedFor:       moderator,
+		ToDo:              "moderating",
 		FromPath:          gradexpath.ModerateActive(exam),
 		ToPath:            gradexpath.ModeratorReady(exam, moderator),
 		ExamName:          exam,
@@ -163,9 +202,16 @@ func AddModerateInActiveBar(exam string, mch chan chmsg.MessageInfo) error {
 		UUID:     uuidStr,
 		Name:     "moderating",
 		UnixTime: time.Now().UnixNano(),
+		Moderating: []pdfpagedata.MarkingAction{
+			pdfpagedata.MarkingAction{
+				Actor: "none",
+			},
+		},
 	}
 
 	oc := OverlayCommand{
+		PreparedFor:       "",
+		ToDo:              "moderating",
 		FromPath:          gradexpath.ModerateInActive(exam),
 		ToPath:            gradexpath.ModeratedInActiveBack(exam),
 		ExamName:          exam,
@@ -221,9 +267,16 @@ func AddCheckBar(exam string, checker string, mch chan chmsg.MessageInfo) error 
 		UUID:     uuidStr,
 		Name:     "checking",
 		UnixTime: time.Now().UnixNano(),
+		Checking: []pdfpagedata.MarkingAction{
+			pdfpagedata.MarkingAction{
+				Actor: checker,
+			},
+		},
 	}
 
 	oc := OverlayCommand{
+		PreparedFor:       checker,
+		ToDo:              "checking",
 		FromPath:          gradexpath.ModeratedReady(exam),
 		ToPath:            gradexpath.CheckerReady(exam, checker),
 		ExamName:          exam,

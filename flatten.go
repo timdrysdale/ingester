@@ -21,10 +21,12 @@ import (
 )
 
 type FlattenTask struct {
-	InputPath  string
-	PageCount  int
-	Data       pdfpagedata.PageData
-	OutputPath string
+	InputPath   string
+	PageCount   int
+	Data        pdfpagedata.PageData
+	OutputPath  string
+	PreparedFor string
+	ToDo        string
 }
 
 func FlattenNewPapers(exam string) error {
@@ -103,6 +105,9 @@ func FlattenNewPapers(exam string) error {
 		}
 
 		pagedata := pdfpagedata.PageData{
+			ToDo:        "flattening",
+			PreparedFor: "ingester",
+
 			Exam: pdfpagedata.ExamDetails{
 				CourseCode: sub.Assignment,
 				Date:       shortDate,
@@ -117,10 +122,12 @@ func FlattenNewPapers(exam string) error {
 		outputPath := filepath.Join(gradexpath.AnonymousPapers(sub.Assignment), renamedBase)
 
 		flattenTasks = append(flattenTasks, FlattenTask{
-			InputPath:  pdfPath,
-			OutputPath: outputPath,
-			PageCount:  count,
-			Data:       pagedata})
+			PreparedFor: "ingester",
+			ToDo:        "flattening",
+			InputPath:   pdfPath,
+			OutputPath:  outputPath,
+			PageCount:   count,
+			Data:        pagedata})
 	}
 
 	// now process the files

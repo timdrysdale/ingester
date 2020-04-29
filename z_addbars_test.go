@@ -12,7 +12,14 @@ import (
 	"github.com/timdrysdale/pdfpagedata"
 )
 
+func CollectFilesFrom(path string) {
+
+}
+
 func TestAddBars(t *testing.T) {
+	verbose := false
+
+	//collectOutputs := true
 
 	gradexpath.SetTesting()
 
@@ -22,8 +29,10 @@ func TestAddBars(t *testing.T) {
 		t.Errorf("test root set up wrong %s", root)
 	}
 
+	//>>>>>>>>>>>>>>>>>>>>>>>>> SETUP >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	// don't use GetRoot() here
 	// JUST in case we kill a whole working installation
+
 	os.RemoveAll("./tmp-delete-me")
 
 	EnsureDirectoryStructure()
@@ -52,6 +61,8 @@ func TestAddBars(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.True(t, gradexpath.CopyIsComplete(testfiles, ingestfiles))
+
+	//>>>>>>>>>>>>>>>>>>>>>>>>> INGEST >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 	StageFromIngest()
 
@@ -82,6 +93,8 @@ func TestAddBars(t *testing.T) {
 	assert.True(t, len(expectedPdf) == len(actualPdf))
 	assert.True(t, gradexpath.CopyIsComplete(expectedPdf, actualPdf))
 
+	//>>>>>>>>>>>>>>>>>>>>>>>>> VALIDATE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 	assert.NoError(t, ValidateNewPapers())
 
 	exam := "Practice Exam Drop Box"
@@ -104,8 +117,8 @@ func TestAddBars(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, len(tempTxt), 0)
 
+	//>>>>>>>>>>>>>>>>>>>>>>>>> SETUP FOR FLATTEN/RENAME  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	// Now we test Flatten
-
 	//copy in the identity database
 	src := "./test-fs/etc/identity/identity.csv"
 	dest := "./tmp-delete-me/etc/identity/identity.csv"
@@ -113,7 +126,7 @@ func TestAddBars(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = os.Stat(dest)
 
-	// do flatten
+	//>>>>>>>>>>>>>>>>>>>>>>>>> FLATTEN/RENAME  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	err = FlattenNewPapers("Practice Exam Drop Box")
 	assert.NoError(t, err)
 
@@ -140,7 +153,7 @@ func TestAddBars(t *testing.T) {
 	pd := pds[0]
 	assert.Equal(t, pd[0].Exam.CourseCode, "Practice Exam Drop Box")
 
-	// Now we test Overlay
+	//>>>>>>>>>>>>>>>>>>>>>>>>> SETUP FOR OVERLAY (via ADDBARS) >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 	templateFiles, err = gradexpath.GetFileList("./test-fs/etc/overlay/template")
 	assert.NoError(t, err)
@@ -161,15 +174,20 @@ func TestAddBars(t *testing.T) {
 			case <-closed:
 				break
 			case msg := <-mch:
-				fmt.Printf("MC:%s\n", msg.Message)
+				if verbose {
+					fmt.Printf("MC:%s\n", msg.Message)
+				}
 			}
 
 		}
 	}()
 
+	//>>>>>>>>>>>>>>>>>>>>>>>>> ADD MARKBAR  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 	marker := "tddrysdale"
 	err = AddMarkBar(exam, marker, mch)
 	assert.NoError(t, err)
+
 	expectedMarker1Pdf := []string{
 		"Practice Exam Drop Box-B999995-maTDD.pdf",
 		"Practice Exam Drop Box-B999997-maTDD.pdf",
@@ -201,6 +219,7 @@ func TestAddBars(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
+	//>>>>>>>>>>>>>>>>>>>>>>>>> ADD ACTIVE MODERATE BAR  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	moderator := "ABC"
 	err = AddModerateActiveBar(exam, moderator, mch)
 	assert.NoError(t, err)
@@ -217,6 +236,7 @@ func TestAddBars(t *testing.T) {
 
 	assert.True(t, gradexpath.CopyIsComplete(expectedActive, activePdf))
 
+	//>>>>>>>>>>>>>>>>>>>>>>>>> ADD INACTIVE MODERATE BAR  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	err = AddModerateInActiveBar(exam, mch)
 	assert.NoError(t, err)
 
@@ -224,6 +244,7 @@ func TestAddBars(t *testing.T) {
 		"Practice Exam Drop Box-B999998-maTDD-moX.pdf",
 		"Practice Exam Drop Box-B999999-maTDD-moX.pdf",
 	}
+
 	inActivePdf, err := gradexpath.GetFileList(gradexpath.ModeratedInActiveBack(exam))
 	assert.NoError(t, err)
 
@@ -258,6 +279,8 @@ func TestAddBars(t *testing.T) {
 	assert.Equal(t, len(expectedModeratedReadyPdf), len(moderatedReadyPdf))
 
 	assert.True(t, gradexpath.CopyIsComplete(expectedModeratedReadyPdf, moderatedReadyPdf))
+
+	//>>>>>>>>>>>>>>>>>>>>>>>>> ADD CHECK BAR  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 	checker := "LD"
 
