@@ -11,6 +11,7 @@ import (
 )
 
 func TestFlatten(t *testing.T) {
+
 	gradexpath.SetTesting()
 
 	root := gradexpath.Root()
