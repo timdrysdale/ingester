@@ -16,6 +16,8 @@ import (
 
 func TestOverlay(t *testing.T) {
 
+	verbose := false
+
 	gradexpath.SetTesting()
 
 	root := gradexpath.Root()
@@ -169,7 +171,9 @@ func TestOverlay(t *testing.T) {
 			case <-closed:
 				break
 			case msg := <-mch:
-				fmt.Printf("MC:%s\n", msg.Message)
+				if verbose {
+					fmt.Printf("MC:%s\n", msg.Message)
+				}
 			}
 
 		}

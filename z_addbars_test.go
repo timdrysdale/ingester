@@ -13,7 +13,7 @@ import (
 )
 
 func TestAddBars(t *testing.T) {
-
+	verbose := false
 	gradexpath.SetTesting()
 
 	root := gradexpath.Root()
@@ -161,7 +161,9 @@ func TestAddBars(t *testing.T) {
 			case <-closed:
 				break
 			case msg := <-mch:
-				fmt.Printf("MC:%s\n", msg.Message)
+				if verbose {
+					fmt.Printf("MC:%s\n", msg.Message)
+				}
 			}
 
 		}

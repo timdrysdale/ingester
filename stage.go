@@ -1,13 +1,11 @@
 package ingester
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
+	"github.com/mholt/archiver"
 	"github.com/timdrysdale/gradexpath"
-	"github.com/timdrysdale/unzip"
 )
 
 // wait for user to press an "do ingest button", then filewalk to get the paths
@@ -15,7 +13,7 @@ func StageFromIngest() error {
 
 	ingestPath := gradexpath.Ingest()
 
-	// consider listing paths then moving....
+	// TODO consider listing paths then moving....
 	//pdfPaths := []string{}
 	//txtPaths := []string{}
 
@@ -29,10 +27,9 @@ LOOP:
 			}
 
 			switch {
-			//case gradexpath.IsZip(path):
-			//	passAgain = true
-			//	handleIngestZip(path)
-			// TODO try another zip library
+			case gradexpath.IsArchive(path):
+				passAgain = true
+				handleIngestArchive(path)
 			case gradexpath.IsTxt(path):
 				err := gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.TempTxt())
 				if err != nil {
@@ -62,22 +59,16 @@ LOOP:
 	return nil
 }
 
-func handleIngestZip(zipPath string) error {
-	suffix := filepath.Ext(zipPath)
-	zipBase := filepath.Base(zipPath)
-	zipName := strings.TrimSuffix(zipBase, suffix)
-	temploc := fmt.Sprintf("tmp-unzip-%s", strings.Replace(zipName, " ", "", -1))
-	extractPath := filepath.Join(gradexpath.Ingest(), temploc)
-	err := handleZip(zipPath, extractPath)
-	return err
-}
-
-func handleZip(zipPath, extractPath string) error {
-	uz := unzip.New(zipPath, extractPath)
-	err := uz.Extract()
+func handleIngestArchive(archivePath string) error {
+	//suffix := filepath.Ext(archivePath)
+	//archiveBase := filepath.Base(archivePath)
+	//archiveName := strings.TrimSuffix(archiveBase, suffix)
+	//temploc := fmt.Sprintf("tmp-unarchive-%s", strings.Replace(archiveName, " ", "", -1))
+	//extractPath := filepath.Join(gradexpath.Ingest(), temploc)
+	err := archiver.Unarchive(archivePath, gradexpath.Ingest())
 	if err != nil {
 		return err
 	}
-	err = os.Remove(zipPath)
+	err = os.Remove(archivePath)
 	return err
 }
