@@ -9,6 +9,7 @@
 .#*
 tmp-delete-me
 example-output
+example-output
 # Test binary, built with `go test -c`
 *.test
 

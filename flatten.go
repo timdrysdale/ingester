@@ -269,7 +269,9 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 		headerPrefills[pageNumber]["date"] = pageData.Exam.Date
 
 		headerPrefills[pageNumber]["title"] = pageData.Exam.CourseCode
-
+		if len(headerPrefills[pageNumber]["title"]) > 12 {
+			headerPrefills[pageNumber]["title"] = headerPrefills[pageNumber]["title"][0:13]
+		}
 		contents := parsesvg.SpreadContents{
 			SvgLayoutPath:         svgLayoutPath,
 			SpreadName:            "flatten",
