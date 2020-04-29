@@ -80,6 +80,8 @@ func AddMarkBar(exam string, marker string, mch chan chmsg.MessageInfo) error {
 	}
 
 	oc := OverlayCommand{
+		PreparedFor:       marker,
+		ToDo:              "marking",
 		FromPath:          gradexpath.AnonymousPapers(exam),
 		ToPath:            gradexpath.MarkerReady(exam, marker),
 		ExamName:          exam,
@@ -143,6 +145,8 @@ func AddModerateActiveBar(exam string, moderator string, mch chan chmsg.MessageI
 	}
 
 	oc := OverlayCommand{
+		PreparedFor:       moderator,
+		ToDo:              "moderating",
 		FromPath:          gradexpath.ModerateActive(exam),
 		ToPath:            gradexpath.ModeratorReady(exam, moderator),
 		ExamName:          exam,
@@ -206,6 +210,8 @@ func AddModerateInActiveBar(exam string, mch chan chmsg.MessageInfo) error {
 	}
 
 	oc := OverlayCommand{
+		PreparedFor:       "",
+		ToDo:              "moderating",
 		FromPath:          gradexpath.ModerateInActive(exam),
 		ToPath:            gradexpath.ModeratedInActiveBack(exam),
 		ExamName:          exam,
@@ -269,6 +275,8 @@ func AddCheckBar(exam string, checker string, mch chan chmsg.MessageInfo) error 
 	}
 
 	oc := OverlayCommand{
+		PreparedFor:       checker,
+		ToDo:              "checking",
 		FromPath:          gradexpath.ModeratedReady(exam),
 		ToPath:            gradexpath.CheckerReady(exam, checker),
 		ExamName:          exam,

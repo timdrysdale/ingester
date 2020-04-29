@@ -27,6 +27,8 @@ type OverlayTask struct {
 	SpreadName    string
 	Template      string
 	Msg           *chmsg.Messager
+	PreparedFor   string
+	ToDo          string
 }
 
 // Overlay command struct - for backwards compatability
@@ -45,6 +47,8 @@ type OverlayCommand struct {
 	QuestionDetails   pdfpagedata.QuestionDetails
 	Msg               *chmsg.Messager
 	PathDecoration    string //this is the "-ma1" for marker1, "mo2" for moderator 2, "d" for done etc
+	PreparedFor       string
+	ToDo              string
 }
 
 // This function places content - but needs a wrapper to generate that content
@@ -117,6 +121,8 @@ func OverlayPapers(oc OverlayCommand) error {
 		overlayTasks = append(overlayTasks, OverlayTask{
 			InputPath:     inPath,
 			PageCount:     count,
+			PreparedFor:   oc.PreparedFor,
+			ToDo:          oc.ToDo,
 			NewProcessing: oc.ProcessingDetails, //do dynamic update when processing
 			NewQuestion:   oc.QuestionDetails,   //do dynamic update when processing
 			PageDataMap:   pageDataMap,
