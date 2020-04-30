@@ -1,6 +1,17 @@
 package ingester
 
-/*
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/timdrysdale/chmsg"
+	"github.com/timdrysdale/gradexpath"
+	"github.com/timdrysdale/pdfpagedata"
+)
+
 func CollectFilesFrom(path string) error {
 	files, err := gradexpath.GetFileList(path)
 	if err != nil {
@@ -17,160 +28,8 @@ func CollectFilesFrom(path string) error {
 }
 
 func TestAddBars(t *testing.T) {
-	verbose := false
-
+	verbose := true
 	collectOutputs := true
-	if collectOutputs {
-		err := os.RemoveAll("./example-output")
-		assert.NoError(t, err)
-		err = gradexpath.EnsureDir("./example-output")
-		assert.NoError(t, err)
-	}
-
-	gradexpath.SetTesting()
-
-	root := gradexpath.Root()
-
-	if root != "./tmp-delete-me" {
-		t.Errorf("test root set up wrong %s", root)
-	}
-
-	//>>>>>>>>>>>>>>>>>>>>>>>>> SETUP >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	// don't use GetRoot() here
-	// JUST in case we kill a whole working installation
-
-	os.RemoveAll("./tmp-delete-me")
-
-	EnsureDirectoryStructure()
-
-	testfiles, err := gradexpath.GetFileList("./test")
-
-	assert.NoError(t, err)
-
-	for _, file := range testfiles {
-		destination := filepath.Join(gradexpath.Ingest(), filepath.Base(file))
-		err := gradexpath.Copy(file, destination)
-		assert.NoError(t, err)
-
-	}
-
-	templateFiles, err := gradexpath.GetFileList("./test-fs/etc/ingest/template")
-	assert.NoError(t, err)
-
-	for _, file := range templateFiles {
-		destination := filepath.Join(gradexpath.IngestTemplate(), filepath.Base(file))
-		err := gradexpath.Copy(file, destination)
-		assert.NoError(t, err)
-	}
-
-	ingestfiles, err := gradexpath.GetFileList(gradexpath.Ingest())
-	assert.NoError(t, err)
-
-	assert.True(t, gradexpath.CopyIsComplete(testfiles, ingestfiles))
-
-	//>>>>>>>>>>>>>>>>>>>>>>>>> INGEST >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-	StageFromIngest()
-
-	expectedRejects, err := gradexpath.GetFileList("./expected/rejects")
-	assert.NoError(t, err)
-
-	actualRejects, err := gradexpath.GetFileList(gradexpath.Ingest())
-	assert.NoError(t, err)
-
-	assert.True(t, len(expectedRejects) == len(actualRejects))
-	assert.True(t, gradexpath.CopyIsComplete(expectedRejects, actualRejects))
-
-	expectedTxt, err := gradexpath.GetFileList("./expected/temp-txt")
-	assert.NoError(t, err)
-
-	actualTxt, err := gradexpath.GetFileList(gradexpath.TempTxt())
-	assert.NoError(t, err)
-
-	assert.True(t, len(expectedTxt) == len(actualTxt))
-	assert.True(t, gradexpath.CopyIsComplete(expectedTxt, actualTxt))
-
-	expectedPdf, err := gradexpath.GetFileList("./expected/temp-pdf")
-	assert.NoError(t, err)
-
-	actualPdf, err := gradexpath.GetFileList(gradexpath.TempPdf())
-	assert.NoError(t, err)
-
-	assert.True(t, len(expectedPdf) == len(actualPdf))
-	assert.True(t, gradexpath.CopyIsComplete(expectedPdf, actualPdf))
-
-	//>>>>>>>>>>>>>>>>>>>>>>>>> VALIDATE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-	assert.NoError(t, ValidateNewPapers())
-
-	exam := "Practice Exam Drop Box"
-
-	actualPdf, err = gradexpath.GetFileList(gradexpath.AcceptedPapers(exam))
-	assert.NoError(t, err)
-	assert.True(t, len(expectedPdf) == len(actualPdf))
-	assert.True(t, gradexpath.CopyIsComplete(expectedPdf, actualPdf))
-
-	actualTxt, err = gradexpath.GetFileList(gradexpath.AcceptedReceipts(exam))
-	assert.NoError(t, err)
-	assert.True(t, len(expectedTxt) == len(actualTxt))
-	assert.True(t, gradexpath.CopyIsComplete(expectedTxt, actualTxt))
-
-	tempPdf, err := gradexpath.GetFileList(gradexpath.TempPdf())
-	assert.NoError(t, err)
-	assert.Equal(t, len(tempPdf), 0)
-
-	tempTxt, err := gradexpath.GetFileList(gradexpath.TempTxt())
-	assert.NoError(t, err)
-	assert.Equal(t, len(tempTxt), 0)
-
-	//>>>>>>>>>>>>>>>>>>>>>>>>> SETUP FOR FLATTEN/RENAME  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	// Now we test Flatten
-	//copy in the identity database
-	src := "./test-fs/etc/identity/identity.csv"
-	dest := "./tmp-delete-me/etc/identity/identity.csv"
-	err = gradexpath.Copy(src, dest)
-	assert.NoError(t, err)
-	_, err = os.Stat(dest)
-
-	//>>>>>>>>>>>>>>>>>>>>>>>>> FLATTEN/RENAME  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	err = FlattenNewPapers("Practice Exam Drop Box")
-	assert.NoError(t, err)
-
-	// check files exist
-
-	expectedAnonymousPdf := []string{
-		"Practice Exam Drop Box-B999995.pdf",
-		"Practice Exam Drop Box-B999997.pdf",
-		"Practice Exam Drop Box-B999998.pdf",
-		"Practice Exam Drop Box-B999999.pdf",
-	}
-
-	anonymousPdf, err := gradexpath.GetFileList(gradexpath.AnonymousPapers(exam))
-	assert.NoError(t, err)
-
-	assert.Equal(t, len(anonymousPdf), len(expectedAnonymousPdf))
-
-	assert.True(t, gradexpath.CopyIsComplete(expectedAnonymousPdf, anonymousPdf))
-
-	// check data extraction
-
-	pds, err := pdfpagedata.GetPageDataFromFile(anonymousPdf[0])
-	assert.NoError(t, err)
-	pd := pds[0]
-	assert.Equal(t, pd[0].Exam.CourseCode, "Practice Exam Drop Box")
-
-	CollectFilesFrom(gradexpath.AnonymousPapers(exam))
-	assert.NoError(t, err)
-	//>>>>>>>>>>>>>>>>>>>>>>>>> SETUP FOR OVERLAY (via ADDBARS) >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-	templateFiles, err = gradexpath.GetFileList("./test-fs/etc/overlay/template")
-	assert.NoError(t, err)
-
-	for _, file := range templateFiles {
-		destination := filepath.Join(gradexpath.OverlayTemplate(), filepath.Base(file))
-		err := gradexpath.Copy(file, destination)
-		assert.NoError(t, err)
-	}
 
 	mch := make(chan chmsg.MessageInfo)
 
@@ -190,10 +49,159 @@ func TestAddBars(t *testing.T) {
 		}
 	}()
 
+	g, err := NewIngester("./tmp-delete-me", mch)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "./tmp-delete-me", g.Root())
+
+	//>>>>>>>>>>>>>>>>>>>>>>>>> SETUP >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	// don't use GetRoot() here
+	// JUST in case we kill a whole working installation
+
+	if collectOutputs {
+		err := os.RemoveAll("./example-output")
+		assert.NoError(t, err)
+		err = g.EnsureDir("./example-output")
+		assert.NoError(t, err)
+	}
+
+	os.RemoveAll("./tmp-delete-me")
+
+	g.EnsureDirectoryStructure()
+
+	testfiles, err := g.GetFileList("./test")
+
+	assert.NoError(t, err)
+
+	for _, file := range testfiles {
+		destination := filepath.Join(g.Ingest(), filepath.Base(file))
+		err := Copy(file, destination)
+		assert.NoError(t, err)
+
+	}
+
+	templateFiles, err := g.GetFileList("./test-fs/etc/ingest/template")
+	assert.NoError(t, err)
+
+	for _, file := range templateFiles {
+		destination := filepath.Join(g.IngestTemplate(), filepath.Base(file))
+		err := Copy(file, destination)
+		assert.NoError(t, err)
+	}
+
+	ingestfiles, err := g.GetFileList(g.Ingest())
+	assert.NoError(t, err)
+
+	assert.True(t, CopyIsComplete(testfiles, ingestfiles))
+
+	//>>>>>>>>>>>>>>>>>>>>>>>>> INGEST >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+	g.StageFromIngest()
+
+	expectedRejects, err := g.GetFileList("./expected/rejects")
+	assert.NoError(t, err)
+
+	actualRejects, err := g.GetFileList(g.Ingest())
+	assert.NoError(t, err)
+
+	assert.True(t, len(expectedRejects) == len(actualRejects))
+	assert.True(t, CopyIsComplete(expectedRejects, actualRejects))
+
+	expectedTxt, err := g.GetFileList("./expected/temp-txt")
+	assert.NoError(t, err)
+
+	actualTxt, err := g.GetFileList(g.TempTXT())
+	assert.NoError(t, err)
+
+	assert.True(t, len(expectedTxt) == len(actualTxt))
+	assert.True(t, CopyIsComplete(expectedTxt, actualTxt))
+
+	expectedPdf, err := g.GetFileList("./expected/temp-pdf")
+	assert.NoError(t, err)
+
+	actualPdf, err := g.GetFileList(g.TempPDF())
+	assert.NoError(t, err)
+
+	assert.True(t, len(expectedPdf) == len(actualPdf))
+	assert.True(t, CopyIsComplete(expectedPdf, actualPdf))
+
+	//>>>>>>>>>>>>>>>>>>>>>>>>> VALIDATE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+	assert.NoError(t, g.ValidateNewPapers())
+
+	exam := "Practice Exam Drop Box"
+
+	actualPdf, err = g.GetFileList(g.AcceptedPapers(exam))
+	assert.NoError(t, err)
+	assert.True(t, len(expectedPdf) == len(actualPdf))
+	assert.True(t, CopyIsComplete(expectedPdf, actualPdf))
+
+	actualTxt, err = g.GetFileList(g.AcceptedReceipts(exam))
+	assert.NoError(t, err)
+	assert.True(t, len(expectedTxt) == len(actualTxt))
+	assert.True(t, CopyIsComplete(expectedTxt, actualTxt))
+
+	tempPdf, err := g.GetFileList(g.TempPDF())
+	assert.NoError(t, err)
+	assert.Equal(t, len(tempPdf), 0)
+
+	tempTxt, err := g.GetFileList(g.TempTXT())
+	assert.NoError(t, err)
+	assert.Equal(t, len(tempTxt), 0)
+
+	//>>>>>>>>>>>>>>>>>>>>>>>>> SETUP FOR FLATTEN/RENAME  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	// Now we test Flatten
+	//copy in the identity database
+	src := "./test-fs/etc/identity/identity.csv"
+	dest := g.IdentityCSV()
+	err = Copy(src, dest)
+	assert.NoError(t, err)
+	_, err = os.Stat(dest)
+
+	//>>>>>>>>>>>>>>>>>>>>>>>>> FLATTEN/RENAME  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	err = g.FlattenNewPapers("Practice Exam Drop Box")
+	assert.NoError(t, err)
+
+	// check files exist
+
+	expectedAnonymousPdf := []string{
+		"Practice Exam Drop Box-B999995.pdf",
+		"Practice Exam Drop Box-B999997.pdf",
+		"Practice Exam Drop Box-B999998.pdf",
+		"Practice Exam Drop Box-B999999.pdf",
+	}
+
+	anonymousPdf, err := g.GetFileList(g.AnonymousPapers(exam))
+	assert.NoError(t, err)
+
+	assert.Equal(t, len(anonymousPdf), len(expectedAnonymousPdf))
+
+	assert.True(t, CopyIsComplete(expectedAnonymousPdf, anonymousPdf))
+
+	// check data extraction
+
+	pds, err := pdfpagedata.GetPageDataFromFile(anonymousPdf[0])
+	assert.NoError(t, err)
+	pd := pds[0]
+	assert.Equal(t, pd[0].Exam.CourseCode, "Practice Exam Drop Box")
+
+	CollectFilesFrom(g.AnonymousPapers(exam))
+	assert.NoError(t, err)
+	//>>>>>>>>>>>>>>>>>>>>>>>>> SETUP FOR OVERLAY (via ADDBARS) >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+	templateFiles, err = g.GetFileList("./test-fs/etc/overlay/template")
+	assert.NoError(t, err)
+
+	for _, file := range templateFiles {
+		destination := filepath.Join(g.OverlayTemplate(), filepath.Base(file))
+		err := Copy(file, destination)
+		assert.NoError(t, err)
+	}
+
 	//>>>>>>>>>>>>>>>>>>>>>>>>> ADD MARKBAR  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 	marker := "tddrysdale"
-	err = AddMarkBar(exam, marker, mch)
+	err = g.AddMarkBar(exam, marker)
 	assert.NoError(t, err)
 
 	expectedMarker1Pdf := []string{
@@ -203,16 +211,16 @@ func TestAddBars(t *testing.T) {
 		"Practice Exam Drop Box-B999999-maTDD.pdf",
 	}
 
-	CollectFilesFrom(gradexpath.MarkerReady(exam, marker))
+	CollectFilesFrom(g.MarkerReady(exam, marker))
 	assert.NoError(t, err)
 
-	readyPdf, err := gradexpath.GetFileList(gradexpath.MarkerReady(exam, marker))
+	readyPdf, err := g.GetFileList(g.MarkerReady(exam, marker))
 
 	assert.NoError(t, err)
 
 	assert.Equal(t, len(expectedMarker1Pdf), len(readyPdf))
 
-	assert.True(t, gradexpath.CopyIsComplete(expectedMarker1Pdf, readyPdf))
+	assert.True(t, CopyIsComplete(expectedMarker1Pdf, readyPdf))
 
 	pds, err = pdfpagedata.GetPageDataFromFile(readyPdf[0])
 	assert.NoError(t, err)
@@ -220,19 +228,19 @@ func TestAddBars(t *testing.T) {
 	assert.Equal(t, pd[0].Questions[0].Name, "marking")
 
 	for _, file := range readyPdf[0:2] {
-		destination := filepath.Join(gradexpath.ModerateActive(exam), filepath.Base(file))
-		err := gradexpath.Copy(file, destination)
+		destination := filepath.Join(g.ModerateActive(exam), filepath.Base(file))
+		err := Copy(file, destination)
 		assert.NoError(t, err)
 	}
 	for _, file := range readyPdf[2:4] {
-		destination := filepath.Join(gradexpath.ModerateInActive(exam), filepath.Base(file))
-		err := gradexpath.Copy(file, destination)
+		destination := filepath.Join(g.ModerateInActive(exam), filepath.Base(file))
+		err := Copy(file, destination)
 		assert.NoError(t, err)
 	}
 
 	//>>>>>>>>>>>>>>>>>>>>>>>>> ADD ACTIVE MODERATE BAR  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	moderator := "ABC"
-	err = AddModerateActiveBar(exam, moderator, mch)
+	err = g.AddModerateActiveBar(exam, moderator)
 	assert.NoError(t, err)
 
 	expectedActive := []string{ //note the d is missing for convenience here
@@ -240,17 +248,17 @@ func TestAddBars(t *testing.T) {
 		"Practice Exam Drop Box-B999997-maTDD-moABC.pdf",
 	}
 
-	activePdf, err := gradexpath.GetFileList(gradexpath.ModeratorReady(exam, moderator))
+	activePdf, err := g.GetFileList(g.ModeratorReady(exam, moderator))
 	assert.NoError(t, err)
 
 	assert.Equal(t, len(expectedActive), len(activePdf))
 
-	assert.True(t, gradexpath.CopyIsComplete(expectedActive, activePdf))
+	assert.True(t, CopyIsComplete(expectedActive, activePdf))
 
-	CollectFilesFrom(gradexpath.ModeratorReady(exam, moderator))
+	CollectFilesFrom(g.ModeratorReady(exam, moderator))
 	assert.NoError(t, err)
 	//>>>>>>>>>>>>>>>>>>>>>>>>> ADD INACTIVE MODERATE BAR  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	err = AddModerateInActiveBar(exam, mch)
+	err = g.AddModerateInActiveBar(exam)
 	assert.NoError(t, err)
 
 	expectedInActive := []string{ //note the d is missing for convenience here
@@ -258,27 +266,27 @@ func TestAddBars(t *testing.T) {
 		"Practice Exam Drop Box-B999999-maTDD-moX.pdf",
 	}
 
-	inActivePdf, err := gradexpath.GetFileList(gradexpath.ModeratedInActiveBack(exam))
+	inActivePdf, err := g.GetFileList(g.ModeratedInActiveBack(exam))
 	assert.NoError(t, err)
 
-	CollectFilesFrom(gradexpath.ModeratedInActiveBack(exam))
+	CollectFilesFrom(g.ModeratedInActiveBack(exam))
 	assert.NoError(t, err)
 
 	assert.Equal(t, len(expectedInActive), len(inActivePdf))
 
-	assert.True(t, gradexpath.CopyIsComplete(expectedInActive, inActivePdf))
+	assert.True(t, CopyIsComplete(expectedInActive, inActivePdf))
 
 	// copy files to common area (as if have processed them - not checked here)
 
 	for _, file := range activePdf {
-		destination := filepath.Join(gradexpath.ModeratedReady(exam), filepath.Base(file))
-		err := gradexpath.Copy(file, destination)
+		destination := filepath.Join(g.ModeratedReady(exam), filepath.Base(file))
+		err := Copy(file, destination)
 		assert.NoError(t, err)
 	}
 
 	for _, file := range inActivePdf {
-		destination := filepath.Join(gradexpath.ModeratedReady(exam), filepath.Base(file))
-		err := gradexpath.Copy(file, destination)
+		destination := filepath.Join(g.ModeratedReady(exam), filepath.Base(file))
+		err := Copy(file, destination)
 		assert.NoError(t, err)
 	}
 
@@ -289,18 +297,18 @@ func TestAddBars(t *testing.T) {
 		"Practice Exam Drop Box-B999999-maTDD-moX.pdf",
 	}
 
-	moderatedReadyPdf, err := gradexpath.GetFileList(gradexpath.ModeratedReady(exam))
+	moderatedReadyPdf, err := g.GetFileList(g.ModeratedReady(exam))
 	assert.NoError(t, err)
 
 	assert.Equal(t, len(expectedModeratedReadyPdf), len(moderatedReadyPdf))
 
-	assert.True(t, gradexpath.CopyIsComplete(expectedModeratedReadyPdf, moderatedReadyPdf))
+	assert.True(t, CopyIsComplete(expectedModeratedReadyPdf, moderatedReadyPdf))
 
 	//>>>>>>>>>>>>>>>>>>>>>>>>> ADD CHECK BAR  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 	checker := "LD"
 
-	err = AddCheckBar(exam, checker, mch)
+	err = g.AddCheckBar(exam, checker)
 	assert.NoError(t, err)
 	expectedChecked := []string{ //note the d is missing for convenience here
 		"Practice Exam Drop Box-B999995-maTDD-moABC-cLD.pdf",
@@ -309,13 +317,12 @@ func TestAddBars(t *testing.T) {
 		"Practice Exam Drop Box-B999999-maTDD-moX-cLD.pdf",
 	}
 
-	checkedPdf, err := gradexpath.GetFileList(gradexpath.CheckerReady(exam, checker))
+	checkedPdf, err := g.GetFileList(g.CheckerReady(exam, checker))
 	assert.NoError(t, err)
 
 	assert.Equal(t, len(expectedChecked), len(checkedPdf))
 
-	assert.True(t, gradexpath.CopyIsComplete(expectedChecked, checkedPdf))
-	CollectFilesFrom(gradexpath.CheckerReady(exam, checker))
+	assert.True(t, CopyIsComplete(expectedChecked, checkedPdf))
+	CollectFilesFrom(g.CheckerReady(exam, checker))
 	assert.NoError(t, err)
 }
-*/
