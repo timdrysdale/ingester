@@ -1,14 +1,6 @@
 package ingester
 
-import (
-	"os"
-	"path/filepath"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/timdrysdale/gradexpath"
-)
-
+/*
 func TestStage(t *testing.T) {
 
 	gradexpath.SetTesting()

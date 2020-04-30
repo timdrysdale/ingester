@@ -1,17 +1,6 @@
 package ingester
 
-import (
-	"fmt"
-	"os"
-	"path/filepath"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/timdrysdale/chmsg"
-	"github.com/timdrysdale/gradexpath"
-	"github.com/timdrysdale/pdfpagedata"
-)
-
+/*
 func CollectFilesFrom(path string) error {
 	files, err := gradexpath.GetFileList(path)
 	if err != nil {
@@ -329,3 +318,4 @@ func TestAddBars(t *testing.T) {
 	CollectFilesFrom(gradexpath.CheckerReady(exam, checker))
 	assert.NoError(t, err)
 }
+*/

@@ -1,19 +1,6 @@
 package ingester
 
-import (
-	"fmt"
-	"os"
-	"path/filepath"
-	"testing"
-	"time"
-
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/timdrysdale/chmsg"
-	"github.com/timdrysdale/gradexpath"
-	"github.com/timdrysdale/pdfpagedata"
-)
-
+/*
 func TestOverlay(t *testing.T) {
 
 	verbose := false
@@ -227,3 +214,4 @@ func TestOverlay(t *testing.T) {
 	assert.True(t, gradexpath.CopyIsComplete(expectedMarker1Pdf, exportPdf))
 
 }
+*/

@@ -8,48 +8,12 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/timdrysdale/chmsg"
-	"github.com/timdrysdale/gradexpath"
 	"github.com/timdrysdale/parsesvg"
 	"github.com/timdrysdale/pdfcomment"
 	"github.com/timdrysdale/pdfpagedata"
 	"github.com/timdrysdale/pool"
 	pdf "github.com/timdrysdale/unipdf/v3/model"
 )
-
-type OverlayTask struct {
-	InputPath     string
-	PageCount     int
-	NewProcessing pdfpagedata.ProcessingDetails
-	NewQuestion   pdfpagedata.QuestionDetails
-	PageDataMap   map[int][]pdfpagedata.PageData
-	OutputPath    string
-	SpreadName    string
-	Template      string
-	Msg           *chmsg.Messager
-	PreparedFor   string
-	ToDo          string
-}
-
-// Overlay command struct - for backwards compatability
-// ExamName: This is our internal system representation of the exam,
-//and MAY NOT equal the value in PageData for cosmetic reasons - hence
-//it is also not equivalent for functional reasons as this string MUST
-//exactly match our internal representation
-
-type OverlayCommand struct {
-	FromPath          string
-	ToPath            string
-	ExamName          string
-	TemplatePath      string
-	SpreadName        string
-	ProcessingDetails pdfpagedata.ProcessingDetails
-	QuestionDetails   pdfpagedata.QuestionDetails
-	Msg               *chmsg.Messager
-	PathDecoration    string //this is the "-ma1" for marker1, "mo2" for moderator 2, "d" for done etc
-	PreparedFor       string
-	ToDo              string
-}
 
 // This function places content - but needs a wrapper to generate that content
 // appropriately for each step
@@ -65,7 +29,7 @@ type OverlayCommand struct {
 // write doc
 // tell someone about it!
 
-func OutputPath(dir, inPath, decoration string) string {
+func (g *Ingester) OutputPath(dir, inPath, decoration string) string {
 
 	ext := filepath.Ext(inPath)
 	base := strings.TrimSuffix(filepath.Base(inPath), ext)
@@ -74,7 +38,7 @@ func OutputPath(dir, inPath, decoration string) string {
 
 }
 
-func OverlayPapers(oc OverlayCommand) error {
+func (g *Ingester) OverlayPapers(oc OverlayCommand) error {
 
 	// assume someone hits a button to ask us to do this ...
 	// we'll operate on the directory that is associated with
@@ -82,7 +46,7 @@ func OverlayPapers(oc OverlayCommand) error {
 
 	overlayTasks := []OverlayTask{}
 
-	inPaths, err := gradexpath.GetFileList(oc.FromPath)
+	inPaths, err := g.GetFileList(oc.FromPath)
 	if err != nil {
 		oc.Msg.Send(fmt.Sprintf("Stopping early; couldn't get files because %v\n", err))
 		return err
@@ -90,7 +54,7 @@ func OverlayPapers(oc OverlayCommand) error {
 
 	for _, inPath := range inPaths {
 
-		count, err := countPages(inPath)
+		count, err := CountPages(inPath)
 
 		if err != nil {
 			oc.Msg.Send(fmt.Sprintf("Skipping (%s): error counting pages because %v\n", inPath, err))
@@ -126,7 +90,7 @@ func OverlayPapers(oc OverlayCommand) error {
 			NewProcessing: oc.ProcessingDetails, //do dynamic update when processing
 			NewQuestion:   oc.QuestionDetails,   //do dynamic update when processing
 			PageDataMap:   pageDataMap,
-			OutputPath:    OutputPath(oc.ToPath, inPath, oc.PathDecoration),
+			OutputPath:    g.OutputPath(oc.ToPath, inPath, oc.PathDecoration),
 			SpreadName:    oc.SpreadName,
 			Template:      oc.TemplatePath,
 			Msg:           oc.Msg,
@@ -147,7 +111,7 @@ func OverlayPapers(oc OverlayCommand) error {
 		ot := overlayTasks[i]
 
 		newtask := pool.NewTask(func() error {
-			pc, err := OverlayOnePdf(ot)
+			pc, err := g.OverlayOnePDF(ot)
 			oc.Msg.Send(fmt.Sprintf("Finished processing (%s) into (%s)which had <%d> pages", ot.InputPath, ot.OutputPath, pc))
 			oc.Msg.Send(fmt.Sprintf("pages(%d)", pc))
 			return err
@@ -184,10 +148,10 @@ func OverlayPapers(oc OverlayCommand) error {
 // do one file, dynamically assembling the data we need make the latest pagedata
 // from what we get in the OverlayTask struct
 // return the number of pages
-func OverlayOnePdf(ot OverlayTask) (int, error) {
+func (g *Ingester) OverlayOnePDF(ot OverlayTask) (int, error) {
 
 	// need page count to find the jpeg files again later
-	numPages, err := countPages(ot.InputPath)
+	numPages, err := CountPages(ot.InputPath)
 
 	// render to images
 	// TODO - could get a panic here...
@@ -210,7 +174,7 @@ OUTER:
 		return 0, errors.New("Couldn't find a course code")
 	}
 
-	jpegPath := gradexpath.PaperImages(courseCode) //ot.PageDataMap[0].Exam.CourseCode)
+	jpegPath := g.PaperImages(courseCode) //ot.PageDataMap[0].Exam.CourseCode)
 
 	suffix := filepath.Ext(ot.InputPath)
 	basename := strings.TrimSuffix(filepath.Base(ot.InputPath), suffix)
@@ -232,7 +196,7 @@ OUTER:
 
 	f.Close()
 
-	err = convertPDFToJPEGs(ot.InputPath, jpegPath, jpegFileOption)
+	err = ConvertPDFToJPEGs(ot.InputPath, jpegPath, jpegFileOption)
 	if err != nil {
 		ot.Msg.Send(fmt.Sprintf("Can't flatten file (%s) to images because: %v\n", ot.InputPath, err))
 		return 0, err
@@ -240,7 +204,7 @@ OUTER:
 
 	// convert images to individual pdfs, with form overlay
 
-	pagePath := gradexpath.PaperPages(courseCode)
+	pagePath := g.PaperPages(courseCode)
 	pageFileOption := fmt.Sprintf("%s/%s%%04d.pdf", pagePath, basename)
 
 	mergePaths := []string{}
@@ -316,7 +280,7 @@ OUTER:
 
 		mergePaths = append(mergePaths, pageFilename)
 	}
-	err = mergePdf(mergePaths, ot.OutputPath)
+	err = MergePDF(mergePaths, ot.OutputPath)
 	if err != nil {
 		ot.Msg.Send(fmt.Sprintf("Error merging processed pages for (%s) because %v\n", ot.InputPath, err))
 		return 0, err

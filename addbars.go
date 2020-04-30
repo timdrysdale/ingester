@@ -6,36 +6,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/timdrysdale/chmsg"
-	"github.com/timdrysdale/gradexpath"
 	"github.com/timdrysdale/pdfpagedata"
 )
 
-//type QuestionDetails struct {
-//	UUID           string            `json:"UUID"`
-//	Name           string            `json:"name"` //what to call it in a dropbox etc
-//	Section        string            `json:"section"`
-//	Number         int               `json:"number"` //No Harry Potter Platform 9&3/4 questions
-//	Parts          []QuestionDetails `json:"parts"`
-//	MarksAvailable float64           `json:"marksAvailable"`
-//	MarksAwarded   float64           `json:"marksAwarded"`
-//	Marking        []MarkingAction   `json:"markers"`
-//	Moderating     []MarkingAction   `json:"moderators"`
-//	Checking       []MarkingAction   `json:"checkers"`
-//	Sequence       int               `json:"sequence"`
-//	UnixTime       int64             `json:"unixTime"`
-//	Previous       string            `json:"previous"`
-//}
-//
-//type MarkingAction struct {
-//	Actor    string         `json:"actor"`
-//	Contact  ContactDetails `json:"contact"`
-//	Mark     MarkDetails    `json:"mark"`
-//	Done     bool           `json:"done"`
-//	UnixTime int64          `json:"unixTime"`
-//	Custom   CustomDetails  `json:"custom"`
-//}
-
-func AddMarkBar(exam string, marker string, mch chan chmsg.MessageInfo) error {
+func (g *Ingester) AddMarkBar(exam string, marker string) error {
 
 	mc := chmsg.MessagerConf{
 		ExamName:     exam,
@@ -43,7 +17,7 @@ func AddMarkBar(exam string, marker string, mch chan chmsg.MessageInfo) error {
 		TaskName:     "add-mark-bar",
 	}
 
-	cm := chmsg.New(mc, mch, 100*time.Millisecond)
+	cm := chmsg.New(mc, g.msgCh, g.timeout)
 
 	var UUIDBytes uuid.UUID
 
@@ -82,25 +56,25 @@ func AddMarkBar(exam string, marker string, mch chan chmsg.MessageInfo) error {
 	oc := OverlayCommand{
 		PreparedFor:       marker,
 		ToDo:              "marking",
-		FromPath:          gradexpath.AnonymousPapers(exam),
-		ToPath:            gradexpath.MarkerReady(exam, marker),
+		FromPath:          g.AnonymousPapers(exam),
+		ToPath:            g.MarkerReady(exam, marker),
 		ExamName:          exam,
-		TemplatePath:      gradexpath.OverlayLayoutSVG(),
+		TemplatePath:      g.OverlayLayoutSVG(),
 		SpreadName:        "mark",
 		ProcessingDetails: procDetails,
 		QuestionDetails:   markDetails,
 		Msg:               cm,
-		PathDecoration:    gradexpath.MarkerABCDecoration(marker),
+		PathDecoration:    g.MarkerABCDecoration(marker),
 	}
 
-	err = OverlayPapers(oc)
+	err = g.OverlayPapers(oc)
 
 	cm.Send(fmt.Sprintf("Finished Processing markbar UUID=%s\n", uuidStr))
 
 	return err
 }
 
-func AddModerateActiveBar(exam string, moderator string, mch chan chmsg.MessageInfo) error {
+func (g *Ingester) AddModerateActiveBar(exam string, moderator string) error {
 
 	mc := chmsg.MessagerConf{
 		ExamName:     exam,
@@ -108,7 +82,7 @@ func AddModerateActiveBar(exam string, moderator string, mch chan chmsg.MessageI
 		TaskName:     "add-moderate-active-bar",
 	}
 
-	cm := chmsg.New(mc, mch, 100*time.Millisecond)
+	cm := chmsg.New(mc, g.msgCh, g.timeout)
 
 	var UUIDBytes uuid.UUID
 
@@ -147,25 +121,25 @@ func AddModerateActiveBar(exam string, moderator string, mch chan chmsg.MessageI
 	oc := OverlayCommand{
 		PreparedFor:       moderator,
 		ToDo:              "moderating",
-		FromPath:          gradexpath.ModerateActive(exam),
-		ToPath:            gradexpath.ModeratorReady(exam, moderator),
+		FromPath:          g.ModerateActive(exam),
+		ToPath:            g.ModeratorReady(exam, moderator),
 		ExamName:          exam,
-		TemplatePath:      gradexpath.OverlayLayoutSVG(),
+		TemplatePath:      g.OverlayLayoutSVG(),
 		SpreadName:        "moderate-active",
 		ProcessingDetails: procDetails,
 		QuestionDetails:   markDetails,
 		Msg:               cm,
-		PathDecoration:    gradexpath.ModeratorABCDecoration(moderator),
+		PathDecoration:    g.ModeratorABCDecoration(moderator),
 	}
 
-	err = OverlayPapers(oc)
+	err = g.OverlayPapers(oc)
 
 	cm.Send(fmt.Sprintf("Finished Processing add-moderate-active-bar UUID=%s\n", uuidStr))
 
 	return err
 }
 
-func AddModerateInActiveBar(exam string, mch chan chmsg.MessageInfo) error {
+func (g *Ingester) AddModerateInActiveBar(exam string) error {
 
 	mc := chmsg.MessagerConf{
 		ExamName:     exam,
@@ -173,7 +147,7 @@ func AddModerateInActiveBar(exam string, mch chan chmsg.MessageInfo) error {
 		TaskName:     "add-moderate-inactive-bar",
 	}
 
-	cm := chmsg.New(mc, mch, 100*time.Millisecond)
+	cm := chmsg.New(mc, g.msgCh, g.timeout)
 
 	var UUIDBytes uuid.UUID
 
@@ -212,25 +186,25 @@ func AddModerateInActiveBar(exam string, mch chan chmsg.MessageInfo) error {
 	oc := OverlayCommand{
 		PreparedFor:       "",
 		ToDo:              "moderating",
-		FromPath:          gradexpath.ModerateInActive(exam),
-		ToPath:            gradexpath.ModeratedInActiveBack(exam),
+		FromPath:          g.ModerateInActive(exam),
+		ToPath:            g.ModeratedInActiveBack(exam),
 		ExamName:          exam,
-		TemplatePath:      gradexpath.OverlayLayoutSVG(),
+		TemplatePath:      g.OverlayLayoutSVG(),
 		SpreadName:        "moderate-inactive",
 		ProcessingDetails: procDetails,
 		QuestionDetails:   markDetails,
 		Msg:               cm,
-		PathDecoration:    gradexpath.ModeratorABCDecoration("X"),
+		PathDecoration:    g.ModeratorABCDecoration("X"),
 	}
 
-	err = OverlayPapers(oc)
+	err = g.OverlayPapers(oc)
 
 	cm.Send(fmt.Sprintf("Finished Processing add-moderate-inactive-bar UUID=%s\n", uuidStr))
 
 	return err
 }
 
-func AddCheckBar(exam string, checker string, mch chan chmsg.MessageInfo) error {
+func (g *Ingester) AddCheckBar(exam string, checker string) error {
 
 	mc := chmsg.MessagerConf{
 		ExamName:     exam,
@@ -238,7 +212,7 @@ func AddCheckBar(exam string, checker string, mch chan chmsg.MessageInfo) error 
 		TaskName:     "add-check-bar",
 	}
 
-	cm := chmsg.New(mc, mch, 100*time.Millisecond)
+	cm := chmsg.New(mc, g.msgCh, g.timeout)
 
 	var UUIDBytes uuid.UUID
 
@@ -277,18 +251,18 @@ func AddCheckBar(exam string, checker string, mch chan chmsg.MessageInfo) error 
 	oc := OverlayCommand{
 		PreparedFor:       checker,
 		ToDo:              "checking",
-		FromPath:          gradexpath.ModeratedReady(exam),
-		ToPath:            gradexpath.CheckerReady(exam, checker),
+		FromPath:          g.ModeratedReady(exam),
+		ToPath:            g.CheckerReady(exam, checker),
 		ExamName:          exam,
-		TemplatePath:      gradexpath.OverlayLayoutSVG(),
+		TemplatePath:      g.OverlayLayoutSVG(),
 		SpreadName:        "check",
 		ProcessingDetails: procDetails,
 		QuestionDetails:   markDetails,
 		Msg:               cm,
-		PathDecoration:    gradexpath.CheckerABCDecoration(checker),
+		PathDecoration:    g.CheckerABCDecoration(checker),
 	}
 
-	err = OverlayPapers(oc)
+	err = g.OverlayPapers(oc)
 
 	cm.Send(fmt.Sprintf("Finished Processing add-check-bar UUID=%s\n", uuidStr))
 

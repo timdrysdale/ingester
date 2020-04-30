@@ -1,14 +1,6 @@
 package ingester
 
-import (
-	"os"
-	"path/filepath"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/timdrysdale/gradexpath"
-)
-
+/*
 func TestValidate(t *testing.T) {
 
 	gradexpath.SetTesting()
@@ -98,3 +90,4 @@ func TestValidate(t *testing.T) {
 	assert.Equal(t, len(tempTxt), 0)
 
 }
+*/

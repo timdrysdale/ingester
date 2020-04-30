@@ -217,7 +217,7 @@ func mergeForms(form, form2 *pdf.PdfAcroForm, docNum int) (*pdf.PdfAcroForm, err
 	return form, nil
 }
 
-func mergePdf(inputPaths []string, outputPath string) error {
+func MergePDF(inputPaths []string, outputPath string) error {
 	pdfWriter := pdf.NewPdfWriter()
 
 	var forms *pdf.PdfAcroForm
