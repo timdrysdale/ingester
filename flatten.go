@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/timdrysdale/anon"
-	"github.com/timdrysdale/gradexpath"
 	"github.com/timdrysdale/parselearn"
 	"github.com/timdrysdale/parsesvg"
 	"github.com/timdrysdale/pdfcomment"
@@ -20,16 +19,7 @@ import (
 	pdf "github.com/timdrysdale/unipdf/v3/model"
 )
 
-type FlattenTask struct {
-	InputPath   string
-	PageCount   int
-	Data        pdfpagedata.PageData
-	OutputPath  string
-	PreparedFor string
-	ToDo        string
-}
-
-func FlattenNewPapers(exam string) error {
+func (g *Ingester) FlattenNewPapers(exam string) error {
 
 	//assume someone hits a button to ask us to do this ...
 
@@ -52,14 +42,14 @@ func FlattenNewPapers(exam string) error {
 	}
 
 	// load our identity database
-	identity, err := anon.New(gradexpath.IdentityCSV())
+	identity, err := anon.New(g.IdentityCSV())
 	if err != nil {
 		return err
 	}
 
 	flattenTasks := []FlattenTask{}
 
-	receipts, err := gradexpath.GetFileList(gradexpath.AcceptedReceipts(exam))
+	receipts, err := g.GetFileList(g.AcceptedReceipts(exam))
 	if err != nil {
 		return err
 	}
@@ -73,7 +63,7 @@ func FlattenNewPapers(exam string) error {
 			// TODO need to flag to user as we shouldn't fail to read a learn receipt here
 		}
 
-		pdfPath, err := GetPdfPath(sub.Filename, gradexpath.AcceptedPapers(exam))
+		pdfPath, err := GetPDFPath(sub.Filename, g.AcceptedPapers(exam))
 
 		if err != nil {
 			fmt.Printf("couldn't get PDF filename for %s because %v\n", sub.Filename, err)
@@ -81,7 +71,7 @@ func FlattenNewPapers(exam string) error {
 			// TODO need to flag to user as we shouldn't fail to find a PDF here
 		}
 
-		count, err := countPages(pdfPath)
+		count, err := CountPages(pdfPath)
 
 		if err != nil {
 			fmt.Printf("couldn't countPages for %s because %v\n", pdfPath, err)
@@ -118,8 +108,8 @@ func FlattenNewPapers(exam string) error {
 			Processing: []pdfpagedata.ProcessingDetails{procDetails},
 		}
 
-		renamedBase := gradexpath.GetAnonymousFileName(sub.Assignment, anonymousIdentity)
-		outputPath := filepath.Join(gradexpath.AnonymousPapers(sub.Assignment), renamedBase)
+		renamedBase := g.GetAnonymousFileName(sub.Assignment, anonymousIdentity)
+		outputPath := filepath.Join(g.AnonymousPapers(sub.Assignment), renamedBase)
 
 		flattenTasks = append(flattenTasks, FlattenTask{
 			PreparedFor: "ingester",
@@ -144,7 +134,7 @@ func FlattenNewPapers(exam string) error {
 		pd := flattenTasks[i].Data
 
 		newtask := pool.NewTask(func() error {
-			pc, err := FlattenOnePdf(inputPath, outputPath, pd)
+			pc, err := g.FlattenOnePDF(inputPath, outputPath, pd)
 			pcChan <- pc
 			return err
 		})
@@ -185,17 +175,17 @@ func FlattenNewPapers(exam string) error {
 
 }
 
-func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) (int, error) {
+func (g *Ingester) FlattenOnePDF(inputPath, outputPath string, pageData pdfpagedata.PageData) (int, error) {
 
 	if strings.ToLower(filepath.Ext(inputPath)) != ".pdf" {
 		return 0, errors.New(fmt.Sprintf("%s does not appear to be a pdf", inputPath))
 	}
 
 	// need page count to find the jpeg files again later
-	numPages, err := countPages(inputPath)
+	numPages, err := CountPages(inputPath)
 
 	// render to images
-	jpegPath := gradexpath.AcceptedPaperImages(pageData.Exam.CourseCode)
+	jpegPath := g.AcceptedPaperImages(pageData.Exam.CourseCode)
 
 	suffix := filepath.Ext(inputPath)
 	basename := strings.TrimSuffix(filepath.Base(inputPath), suffix)
@@ -217,14 +207,14 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 
 	f.Close()
 
-	err = convertPDFToJPEGs(inputPath, jpegPath, jpegFileOption)
+	err = ConvertPDFToJPEGs(inputPath, jpegPath, jpegFileOption)
 	if err != nil {
 		return 0, err
 	}
 
 	// convert images to individual pdfs, with form overlay
 
-	pagePath := gradexpath.AcceptedPaperPages(pageData.Exam.CourseCode)
+	pagePath := g.AcceptedPaperPages(pageData.Exam.CourseCode)
 	pageFileOption := fmt.Sprintf("%s/%s%%04d.pdf", pagePath, basename)
 
 	mergePaths := []string{}
@@ -239,7 +229,7 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 		pageFilename := fmt.Sprintf(pageFileOption, imgIdx)
 
 		//TODO select Layout to suit landscape or portrait
-		svgLayoutPath := gradexpath.FlattenLayoutSVG()
+		svgLayoutPath := g.FlattenLayoutSVG()
 
 		pageNumber := imgIdx - 1
 
@@ -269,7 +259,9 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 		headerPrefills[pageNumber]["date"] = pageData.Exam.Date
 
 		headerPrefills[pageNumber]["title"] = pageData.Exam.CourseCode
-
+		if len(headerPrefills[pageNumber]["title"]) > 12 {
+			headerPrefills[pageNumber]["title"] = headerPrefills[pageNumber]["title"][0:13]
+		}
 		contents := parsesvg.SpreadContents{
 			SvgLayoutPath:         svgLayoutPath,
 			SpreadName:            "flatten",
@@ -291,7 +283,7 @@ func FlattenOnePdf(inputPath, outputPath string, pageData pdfpagedata.PageData) 
 
 		mergePaths = append(mergePaths, pageFilename)
 	}
-	err = mergePdf(mergePaths, outputPath)
+	err = MergePDF(mergePaths, outputPath)
 	if err != nil {
 		fmt.Printf("MERGE: %v", err)
 		return 0, err

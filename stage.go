@@ -7,12 +7,12 @@ import (
 	"strings"
 
 	"github.com/mholt/archiver"
-	"github.com/timdrysdale/gradexpath"
 	"github.com/timdrysdale/pdfpagedata"
 )
 
-func CleanFromIngest() error {
-	files, err := gradexpath.GetFileList(gradexpath.Ingest())
+func (g *Ingester) CleanFromIngest() error {
+
+	files, err := g.GetFileList(g.Ingest())
 	if err != nil {
 		return err
 	}
@@ -29,9 +29,9 @@ func CleanFromIngest() error {
 }
 
 // wait for user to press an "do ingest button", then filewalk to get the paths
-func StageFromIngest() error {
+func (g *Ingester) StageFromIngest() error {
 
-	ingestPath := gradexpath.Ingest()
+	ingestPath := g.Ingest()
 
 	// TODO consider listing paths then moving....
 	//pdfPaths := []string{}
@@ -47,19 +47,19 @@ LOOP:
 			}
 
 			switch {
-			case gradexpath.IsArchive(path):
+			case g.IsArchive(path):
 				passAgain = true
-				handleIngestArchive(path)
-			case gradexpath.IsTxt(path):
-				err := gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.TempTxt())
+				g.HandleIngestArchive(path)
+			case IsTXT(path):
+				err := g.MoveIfNewerThanDestinationInDir(path, g.TempTXT())
 				if err != nil {
 					return err
 				}
-			case gradexpath.IsPdf(path):
-				handleIngestPdf(path)
+			case IsPDF(path):
+				g.HandleIngestPDF(path)
 
-			case gradexpath.IsCsv(path):
-				handleIngestCsv(path)
+			case IsCSV(path):
+				g.HandleIngestCSV(path)
 			}
 
 			return nil
@@ -80,8 +80,8 @@ LOOP:
 	return nil
 }
 
-func handleIngestArchive(archivePath string) error {
-	err := archiver.Unarchive(archivePath, gradexpath.Ingest())
+func (g *Ingester) HandleIngestArchive(archivePath string) error {
+	err := archiver.Unarchive(archivePath, g.Ingest())
 	if err != nil {
 		return err
 	}
@@ -89,9 +89,9 @@ func handleIngestArchive(archivePath string) error {
 	return err
 }
 
-func handleIngestCsv(path string) error {
+func (g *Ingester) HandleIngestCSV(path string) error {
 	if strings.ToLower(filepath.Base(path)) == "identity.csv" {
-		return gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.IngestConf())
+		return g.MoveIfNewerThanDestinationInDir(path, g.IngestConf())
 	}
 	return nil
 	// leave file in ingest if not newer - to overwrite current file with an older version
@@ -100,10 +100,10 @@ func handleIngestCsv(path string) error {
 	// just need the new mod time on the file
 }
 
-func handleIngestPdf(path string) error {
-	//return gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.TempPdf())
+func (g *Ingester) HandleIngestPDF(path string) error {
+	//return g.MoveIfNewerThanDestinationInDir(path, g.TempPDF())
 
-	type PdfSummary struct {
+	type PDFSummary struct {
 		CourseCode  string
 		PreparedFor string
 		ToDo        string
@@ -113,7 +113,7 @@ func handleIngestPdf(path string) error {
 
 	if err != nil {
 		// no page data so likely a raw script
-		return gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.TempPdf())
+		return g.MoveIfNewerThanDestinationInDir(path, g.TempPDF())
 	}
 
 	switch t.ToDo {
@@ -122,17 +122,17 @@ func handleIngestPdf(path string) error {
 
 		// these aren't usually exported, but we may be repopulating a new ingester or
 		// manually correcting something, so we consider our options
-		origin := gradexpath.AnonymousPapers(t.CourseCode)
-		return gradexpath.MoveIfNewerThanDestinationInDir(path, origin)
+		origin := g.AnonymousPapers(t.CourseCode)
+		return g.MoveIfNewerThanDestinationInDir(path, origin)
 		// leave the file in ingest if we don't want it
 
 	case "marking":
 		// these could be marked, or just being returned by DSA if prematurely exported
-		origin := gradexpath.MarkerSent(t.CourseCode, t.PreparedFor)
+		origin := g.MarkerSent(t.CourseCode, t.PreparedFor)
 
-		preOrigin := gradexpath.MarkerReady(t.CourseCode, t.PreparedFor)
+		preOrigin := g.MarkerReady(t.CourseCode, t.PreparedFor)
 
-		if gradexpath.IsSameAsSelfInDir(path, origin) {
+		if g.IsSameAsSelfInDir(path, origin) {
 			// put the file back in Ready (we keep this incoming version _just_in_case_ it had mods
 			// despite having original time stamp and size!
 			err := os.Rename(path, filepath.Join(preOrigin, filepath.Base(path)))
@@ -148,16 +148,16 @@ func handleIngestPdf(path string) error {
 		} else {
 			// it's (probably) been marked at least partly, so see if it is newer
 			// than a version we might already have
-			destination := gradexpath.MarkerBack(t.CourseCode, t.PreparedFor)
-			return gradexpath.MoveIfNewerThanDestinationInDir(path, destination)
+			destination := g.MarkerBack(t.CourseCode, t.PreparedFor)
+			return g.MoveIfNewerThanDestinationInDir(path, destination)
 		}
 	case "moderating":
 
-		origin := gradexpath.ModeratorSent(t.CourseCode, t.PreparedFor)
+		origin := g.ModeratorSent(t.CourseCode, t.PreparedFor)
 
-		preOrigin := gradexpath.ModeratorReady(t.CourseCode, t.PreparedFor)
+		preOrigin := g.ModeratorReady(t.CourseCode, t.PreparedFor)
 
-		if gradexpath.IsSameAsSelfInDir(path, origin) {
+		if g.IsSameAsSelfInDir(path, origin) {
 			// put the file back in Ready (we keep this incoming version _just_in_case_ it had mods
 			// despite having original time stamp and size!
 			err := os.Rename(path, filepath.Join(preOrigin, filepath.Base(path)))
@@ -173,16 +173,16 @@ func handleIngestPdf(path string) error {
 		} else {
 			// it's (probably) been marked at least partly, so see if it is newer
 			// than a version we might already have
-			destination := gradexpath.ModeratorBack(t.CourseCode, t.PreparedFor)
-			return gradexpath.MoveIfNewerThanDestinationInDir(path, destination)
+			destination := g.ModeratorBack(t.CourseCode, t.PreparedFor)
+			return g.MoveIfNewerThanDestinationInDir(path, destination)
 		}
 	case "checking":
 
-		origin := gradexpath.CheckerSent(t.CourseCode, t.PreparedFor)
+		origin := g.CheckerSent(t.CourseCode, t.PreparedFor)
 
-		preOrigin := gradexpath.CheckerReady(t.CourseCode, t.PreparedFor)
+		preOrigin := g.CheckerReady(t.CourseCode, t.PreparedFor)
 
-		if gradexpath.IsSameAsSelfInDir(path, origin) {
+		if g.IsSameAsSelfInDir(path, origin) {
 			// put the file back in Ready (we keep this incoming version _just_in_case_ it had mods
 			// despite having original time stamp and size!
 			err := os.Rename(path, filepath.Join(preOrigin, filepath.Base(path)))
@@ -198,12 +198,12 @@ func handleIngestPdf(path string) error {
 		} else {
 			// it's (probably) been marked at least partly, so see if it is newer
 			// than a version we might already have
-			destination := gradexpath.CheckerBack(t.CourseCode, t.PreparedFor)
-			return gradexpath.MoveIfNewerThanDestinationInDir(path, destination)
+			destination := g.CheckerBack(t.CourseCode, t.PreparedFor)
+			return g.MoveIfNewerThanDestinationInDir(path, destination)
 		}
 	default:
 		// check later to see if it has a learn receipt, etc
-		return gradexpath.MoveIfNewerThanDestinationInDir(path, gradexpath.TempPdf())
+		return g.MoveIfNewerThanDestinationInDir(path, g.TempPDF())
 
 	}
 
