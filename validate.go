@@ -16,14 +16,55 @@ func (g *Ingester) ValidateNewPapers() error {
 		return err
 	}
 
+	// Map receipts, keeping only the latest revision for any given filename, ignoring dir and ext
+	// so as to capture files in different dirs e.g. patch dirs, and with renamed filetypes
+	receiptMap := make(map[string]parselearn.Submission)
+
 	for _, receipt := range possibleReceipts {
 
 		sub, err := parselearn.ParseLearnReceipt(receipt)
 
 		if err != nil {
-			fmt.Println(err)
-			continue // assume there may be others uses for txt, and that clean up will happen at end of the ingest
+			fmt.Println(err) //TODO spit this out on msgchan
+			continue         // assume there may be others uses for txt, and that clean up will happen at end of the ingest
 		}
+
+		if existingSub, ok := receiptMap[fileKey(sub.Filename)]; ok {
+			if sub.Revision > existingSub.Revision {
+				receiptMap[fileKey(sub.Filename)] = sub
+			}
+		} else {
+			receiptMap[fileKey(sub.Filename)] = sub
+		}
+
+	}
+
+	// >>>>>>>>>>>>> drop IGNORE receipts >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	parselearn.HandleIgnoreReceipts(&receiptMap)
+
+	// >>>>>>>>>>>>>>> drop multiple file submissions>>>>>>>>>>>>>>>>>>>>
+	// look for, and reject, any multiple file submissions
+	// these need flattening before merging so automatic merging
+	// is a TODO - automatic flatten and merge multple  pdf submission
+	// these need explicit patching to distinguish between us just taking
+	// the first file before it is merged, with taking a merged file named
+	// the same as the first file - with a patch receipt and a manual merge
+	// we can name it what we like
+	for k, v := range receiptMap {
+		if v.NumberOfFiles > 1 {
+			list, err := parselearn.GetFilePaths(v.OwnPath)
+			if err != nil {
+				continue
+			}
+			if len(list) > 1 {
+				//TODO pipe these out over message channel
+				fmt.Printf("REJECTING %s need to merge: %v\n", k, list)
+				delete(receiptMap, k)
+			}
+		}
+	}
+
+	for _, sub := range receiptMap {
 
 		// assume we want to process this exam at some point - so set up the structure now
 		// if it does not exist already
@@ -31,6 +72,7 @@ func (g *Ingester) ValidateNewPapers() error {
 		if os.IsNotExist(err) {
 			err = g.SetupExamPaths(sub.Assignment)
 			if err != nil {
+
 				return err // If we can't set up a new exam, we may as well bail out
 			}
 		}
@@ -51,13 +93,13 @@ func (g *Ingester) ValidateNewPapers() error {
 			if err != nil {
 				// reject receipt visibly, if problem copying in the pdf
 				fmt.Printf("wanted to copy [%s] but %v\n", currentPath, err)
-				err = g.MoveIfNewerThanDestinationInDir(receipt, g.Ingest())
+				err = g.MoveIfNewerThanDestinationInDir(sub.OwnPath, g.Ingest())
 				if err != nil {
 					fmt.Println(err)
 					continue //carry on with the rest ... TODO flag this in case not actually a lost cause
 				}
 			}
-			err = g.MoveIfNewerThanDestinationInDir(receipt, g.AcceptedReceipts(sub.Assignment))
+			err = g.MoveIfNewerThanDestinationInDir(sub.OwnPath, g.AcceptedReceipts(sub.Assignment))
 			if err != nil {
 				continue
 			}
@@ -68,5 +110,19 @@ func (g *Ingester) ValidateNewPapers() error {
 		}
 
 	}
+
+	// reject back to ingest anything we didn't take further
+	rejectPDF, err := g.GetFileList(g.TempPDF())
+
+	for _, reject := range rejectPDF {
+		g.MoveToDir(reject, g.Ingest())
+	}
+
+	rejectTXT, err := g.GetFileList(g.TempTXT())
+
+	for _, reject := range rejectTXT {
+		g.MoveToDir(reject, g.Ingest())
+	}
+
 	return nil
 }
