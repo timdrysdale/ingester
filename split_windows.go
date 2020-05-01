@@ -7,7 +7,7 @@ import (
 
 // simplified https://github.com/catherinelu/evangelist/blob/master/server.go
 
-func convertPDFToJPEGs(pdfPath string, jpegPath string, outputFile string) error {
+func ConvertPDFToJPEGs(pdfPath string, jpegPath string, outputFile string) error {
 
 	outputFileOption := fmt.Sprintf("-sOutputFile=%s", outputFile)
 
