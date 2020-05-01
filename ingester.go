@@ -485,6 +485,13 @@ func (g *Ingester) MoveIfNewerThanDestinationInDir(source, destinationDir string
 
 }
 
+func (g *Ingester) MoveToDir(source, destinationDir string) error {
+
+	destination := filepath.Join(destinationDir, filepath.Base(source))
+
+	return os.Rename(source, destination)
+}
+
 func (g *Ingester) IsPDF(path string) bool {
 	suffix := strings.ToLower(filepath.Ext(path))
 	return strings.Compare(suffix, ".pdf") == 0

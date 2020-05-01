@@ -12,6 +12,9 @@ import (
 	"github.com/timdrysdale/chmsg"
 )
 
+// we are testing against the same "expected"
+// directory, so archive contents must match the
+// current working test folder contents
 func TestStageArchive(t *testing.T) {
 	verbose := true
 
@@ -62,25 +65,25 @@ func TestStageArchive(t *testing.T) {
 	actualRejects, err := g.GetFileList(g.Ingest())
 	assert.NoError(t, err)
 
-	assert.True(t, len(expectedRejects) == len(actualRejects))
+	assert.Equal(t, len(expectedRejects), len(actualRejects))
 	assert.True(t, g.CopyIsComplete(expectedRejects, actualRejects))
 
-	expectedTxt, err := g.GetFileList("./expected/temp-txt")
+	expectedTxt, err := g.GetFileList("./expected/temp-txt-after-stage")
 	assert.NoError(t, err)
 
 	actualTxt, err := g.GetFileList(g.TempTXT())
 	assert.NoError(t, err)
 
-	assert.True(t, len(expectedTxt) == len(actualTxt))
+	assert.Equal(t, len(expectedTxt), len(actualTxt))
 	assert.True(t, g.CopyIsComplete(expectedTxt, actualTxt))
 
-	expectedPdf, err := g.GetFileList("./expected/temp-pdf")
+	expectedPdf, err := g.GetFileList("./expected/temp-pdf-after-stage")
 	assert.NoError(t, err)
 
 	actualPdf, err := g.GetFileList(g.TempPDF())
 	assert.NoError(t, err)
 
-	assert.True(t, len(expectedPdf) == len(actualPdf))
+	assert.Equal(t, len(expectedPdf), len(actualPdf))
 	assert.True(t, g.CopyIsComplete(expectedPdf, actualPdf))
 
 }
@@ -146,16 +149,16 @@ func TestStageUnModified(t *testing.T) {
 	assert.True(t, len(expectedRejects) == len(actualRejects))
 	assert.True(t, g.CopyIsComplete(expectedRejects, actualRejects))
 
-	expectedTxt, err := g.GetFileList("./expected/temp-txt")
+	expectedTxt, err := g.GetFileList("./expected/temp-txt-after-stage")
 	assert.NoError(t, err)
 
 	actualTxt, err := g.GetFileList(g.TempTXT())
 	assert.NoError(t, err)
 
-	assert.True(t, len(expectedTxt) == len(actualTxt))
+	assert.Equal(t, len(expectedTxt), len(actualTxt))
 	assert.True(t, g.CopyIsComplete(expectedTxt, actualTxt))
 
-	expectedPdf, err := g.GetFileList("./expected/temp-pdf")
+	expectedPdf, err := g.GetFileList("./expected/temp-pdf-after-stage")
 	assert.NoError(t, err)
 
 	actualPdf, err := g.GetFileList(g.TempPDF())

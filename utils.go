@@ -14,6 +14,11 @@ import (
 	pdf "github.com/timdrysdale/unipdf/v3/model"
 )
 
+// for validate's receipt map
+func fileKey(path string) string {
+	return strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+}
+
 // This must remain idempotent so we can call it every startup
 func (g *Ingester) EnsureDirectoryStructure() error {
 	return g.SetupGradexPaths()

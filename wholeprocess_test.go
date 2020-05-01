@@ -112,7 +112,7 @@ func TestAddBars(t *testing.T) {
 	assert.True(t, len(expectedRejects) == len(actualRejects))
 	assert.True(t, CopyIsComplete(expectedRejects, actualRejects))
 
-	expectedTxt, err := g.GetFileList("./expected/temp-txt")
+	expectedTxt, err := g.GetFileList("./expected/temp-txt-after-stage")
 	assert.NoError(t, err)
 
 	actualTxt, err := g.GetFileList(g.TempTXT())
@@ -121,38 +121,48 @@ func TestAddBars(t *testing.T) {
 	assert.True(t, len(expectedTxt) == len(actualTxt))
 	assert.True(t, CopyIsComplete(expectedTxt, actualTxt))
 
-	expectedPdf, err := g.GetFileList("./expected/temp-pdf")
+	expectedPdf, err := g.GetFileList("./expected/temp-pdf-after-stage")
 	assert.NoError(t, err)
 
 	actualPdf, err := g.GetFileList(g.TempPDF())
 	assert.NoError(t, err)
 
-	assert.True(t, len(expectedPdf) == len(actualPdf))
+	assert.Equal(t, len(expectedPdf), len(actualPdf))
 	assert.True(t, CopyIsComplete(expectedPdf, actualPdf))
 
 	//>>>>>>>>>>>>>>>>>>>>>>>>> VALIDATE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+	expectedPdf, err = g.GetFileList("./expected/temp-pdf-after-validation")
+	assert.NoError(t, err)
 	assert.NoError(t, g.ValidateNewPapers())
 
 	exam := "Practice Exam Drop Box"
 
 	actualPdf, err = g.GetFileList(g.AcceptedPapers(exam))
 	assert.NoError(t, err)
-	assert.True(t, len(expectedPdf) == len(actualPdf))
+	assert.Equal(t, len(expectedPdf), len(actualPdf))
 	assert.True(t, CopyIsComplete(expectedPdf, actualPdf))
+
+	expectedTxt, err = g.GetFileList("./expected/temp-txt-after-validation")
+	assert.NoError(t, err)
 
 	actualTxt, err = g.GetFileList(g.AcceptedReceipts(exam))
 	assert.NoError(t, err)
-	assert.True(t, len(expectedTxt) == len(actualTxt))
+	assert.Equal(t, len(expectedTxt), len(actualTxt))
 	assert.True(t, CopyIsComplete(expectedTxt, actualTxt))
 
 	tempPdf, err := g.GetFileList(g.TempPDF())
 	assert.NoError(t, err)
-	assert.Equal(t, len(tempPdf), 0)
+	assert.Equal(t, 0, len(tempPdf))
 
 	tempTxt, err := g.GetFileList(g.TempTXT())
 	assert.NoError(t, err)
-	assert.Equal(t, len(tempTxt), 0)
+	assert.Equal(t, 0, len(tempTxt))
+
+	expectedRejects, err = g.GetFileList("./expected/rejects-after-validation")
+	actualRejects, err = g.GetFileList(g.Ingest())
+	assert.NoError(t, err)
+	assert.Equal(t, len(expectedRejects), len(actualRejects))
+	assert.True(t, CopyIsComplete(expectedRejects, actualRejects))
 
 	//>>>>>>>>>>>>>>>>>>>>>>>>> SETUP FOR FLATTEN/RENAME  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	// Now we test Flatten
