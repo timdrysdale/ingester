@@ -12,6 +12,19 @@ import (
 	"github.com/timdrysdale/copy"
 )
 
+func New(path string, msgCh chan chmsg.MessageInfo) (*Ingester, error) {
+
+	g := &Ingester{}
+
+	g.msgCh = msgCh
+
+	g.timeout = time.Millisecond //timeout on chmsg sending
+
+	g.root = path
+	err := g.SetupGradexPaths()
+
+	return g, err
+}
 func NewIngester(path string, msgCh chan chmsg.MessageInfo) (*Ingester, error) {
 
 	g := &Ingester{}
