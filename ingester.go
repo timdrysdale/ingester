@@ -20,11 +20,9 @@ func NewIngester(path string, msgCh chan chmsg.MessageInfo) (*Ingester, error) {
 
 	g.timeout = time.Millisecond //timeout on chmsg sending
 
-	_, err := os.Stat(path)
-	if err == nil {
-		g.root = path
-		err = g.SetupGradexPaths()
-	}
+	g.root = path
+	err := g.SetupGradexPaths()
+
 	return g, err
 }
 
