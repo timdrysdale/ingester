@@ -91,7 +91,7 @@ func (g *Ingester) HandleIngestArchive(archivePath string) error {
 
 func (g *Ingester) HandleIngestCSV(path string) error {
 	if strings.ToLower(filepath.Base(path)) == "identity.csv" {
-		return g.MoveIfNewerThanDestinationInDir(path, g.IngestConf())
+		return g.MoveIfNewerThanDestinationInDir(path, g.Identity())
 	}
 	return nil
 	// leave file in ingest if not newer - to overwrite current file with an older version

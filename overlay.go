@@ -221,6 +221,7 @@ OUTER:
 		if len(ot.PageDataMap[pageNumber]) < 1 {
 			ot.Msg.Send(fmt.Sprintf("Info: no existing page data for file (%s) on page <%d>\n", ot.InputPath, imgIdx))
 		}
+
 		pageData := ot.PageDataMap[pageNumber][0]
 
 		lastProcess, err := pdfpagedata.SelectProcessByLast(pageData)
