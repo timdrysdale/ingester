@@ -28,7 +28,7 @@ func CollectFilesFrom(path string) error {
 }
 
 func TestAddBars(t *testing.T) {
-	verbose := true
+	verbose := false
 	collectOutputs := true
 
 	mch := make(chan chmsg.MessageInfo)
