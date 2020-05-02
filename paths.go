@@ -366,36 +366,6 @@ func (g *Ingester) SetupExamPaths(exam string) error {
 	return nil
 }
 
-// if the source file is not newer, it's not an error
-// we just won't move it - anything left we deal with later
-func (g *Ingester) MoveIfNewerThanDestination(source, destination string) error {
-
-	//check both exist
-	sourceInfo, err := os.Stat(source)
-
-	if err != nil {
-		return err
-	}
-
-	destinationInfo, err := os.Stat(destination)
-
-	// source newer by definition if destination does not exist
-	if os.IsNotExist(err) {
-		err = os.Rename(source, destination)
-		return err
-	}
-	if err != nil {
-		return err
-	}
-	if sourceInfo.ModTime().After(destinationInfo.ModTime()) {
-		err = os.Rename(source, destination)
-		return err
-	}
-
-	return nil
-
-}
-
 func (g *Ingester) IsSameAsSelfInDir(source, destinationDir string) bool {
 
 	//check both exist
@@ -417,43 +387,6 @@ func (g *Ingester) IsSameAsSelfInDir(source, destinationDir string) bool {
 	sizeEqual := sourceInfo.Size() == destinationInfo.Size()
 	return timeEqual && sizeEqual
 
-}
-
-func (g *Ingester) MoveIfNewerThanDestinationInDir(source, destinationDir string) error {
-
-	//check both exist
-	sourceInfo, err := os.Stat(source)
-
-	if err != nil {
-		return err
-	}
-
-	destination := filepath.Join(destinationDir, filepath.Base(source))
-
-	destinationInfo, err := os.Stat(destination)
-
-	// source newer by definition if destination does not exist
-	if os.IsNotExist(err) {
-		err = os.Rename(source, destination)
-		return err
-	}
-	if err != nil {
-		return err
-	}
-	if sourceInfo.ModTime().After(destinationInfo.ModTime()) {
-		err = os.Rename(source, destination)
-		return err
-	}
-
-	return nil
-
-}
-
-func (g *Ingester) MoveToDir(source, destinationDir string) error {
-
-	destination := filepath.Join(destinationDir, filepath.Base(source))
-
-	return os.Rename(source, destination)
 }
 
 func (g *Ingester) IsPDF(path string) bool {

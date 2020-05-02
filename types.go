@@ -5,6 +5,12 @@ import (
 	"github.com/timdrysdale/pdfpagedata"
 )
 
+type PDFSummary struct {
+	CourseCode  string
+	PreparedFor string
+	ToDo        string
+}
+
 type FlattenTask struct {
 	InputPath   string
 	PageCount   int

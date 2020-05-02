@@ -1,18 +1,23 @@
 package ingester
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/timdrysdale/parselearn"
 )
 
 func (g *Ingester) ValidateNewPapers() error {
 
+	logger := g.logger.With().Str("process", "validate-new-papers").Logger()
+
 	// wait for user to press an "do import new scripts button", then check the temp-txt and temp-pdf dirs
 	possibleReceipts, err := g.GetFileList(g.TempTXT())
 	if err != nil {
+		logger.Error().
+			Str("source", g.TempTXT()).
+			Msg("Could not get list of possible receipts")
 		return err
 	}
 
@@ -25,8 +30,10 @@ func (g *Ingester) ValidateNewPapers() error {
 		sub, err := parselearn.ParseLearnReceipt(receipt)
 
 		if err != nil {
-			fmt.Println(err) //TODO spit this out on msgchan
-			continue         // assume there may be others uses for txt, and that clean up will happen at end of the ingest
+			logger.Error().
+				Str("file", receipt).
+				Msg("Did not parse as a Learn receipt")
+			continue // assume there may be others uses for txt, and that clean up will happen at end of the ingest
 		}
 
 		if existingSub, ok := receiptMap[fileKey(sub.Filename)]; ok {
@@ -54,11 +61,16 @@ func (g *Ingester) ValidateNewPapers() error {
 		if v.NumberOfFiles > 1 {
 			list, err := parselearn.GetFilePaths(v.OwnPath)
 			if err != nil {
+				logger.Error().
+					Str("receipt", v.OwnPath).
+					Msg("Could not check for multiple files in subsmission")
 				continue
 			}
 			if len(list) > 1 {
-				//TODO pipe these out over message channel
-				fmt.Printf("REJECTING %s need to merge: %v\n", k, list)
+				logger.Error().
+					Str("receipt", v.OwnPath).
+					Str("files", strings.Join(list, ";")).
+					Msg("Rejecting because need to merge the submission into one file")
 				delete(receiptMap, k)
 			}
 		}
@@ -72,41 +84,124 @@ func (g *Ingester) ValidateNewPapers() error {
 		if os.IsNotExist(err) {
 			err = g.SetupExamPaths(sub.Assignment)
 			if err != nil {
-
+				g.logger.Error().
+					Str("course", sub.Assignment).
+					Msg("Could not ensure directory structure was set up. Yikes, disk full? Bailing out!")
 				return err // If we can't set up a new exam, we may as well bail out
 			}
 		}
 
 		pdfFilename, err := GetPDFPath(sub.Filename, g.TempPDF())
 		if err != nil {
+			logger.Error().
+				Str("file", sub.Filename).
+				Str("location", g.TempPDF()).
+				Msg("Error figuring out PDF filename, skipping this submission")
 			continue
 		}
 
 		// file we want to get from the temp-pdf dir
 		currentPath := filepath.Join(g.TempPDF(), filepath.Base(pdfFilename))
+		destination := g.AcceptedPapers(sub.Assignment)
 
 		_, err = os.Stat(currentPath)
 
-		if !os.IsNotExist(err) { //double negative, file exists
+		if !os.IsNotExist(err) { //PDF file exists, move it to accepted papers
 
-			err = g.MoveIfNewerThanDestinationInDir(currentPath, g.AcceptedPapers(sub.Assignment))
-			if err != nil {
-				// reject receipt visibly, if problem copying in the pdf
-				fmt.Printf("wanted to copy [%s] but %v\n", currentPath, err)
-				err = g.MoveIfNewerThanDestinationInDir(sub.OwnPath, g.Ingest())
-				if err != nil {
-					fmt.Println(err)
-					continue //carry on with the rest ... TODO flag this in case not actually a lost cause
+			moved, err := g.MoveIfNewerThanDestinationInDir(currentPath, destination)
+
+			switch {
+
+			case err == nil && moved:
+
+				g.logger.Info().
+					Str("file", currentPath).
+					Str("course", sub.Assignment).
+					Str("destination", destination).
+					Msg("PDF validated and moved to accepted papers")
+
+				destination := g.AcceptedReceipts(sub.Assignment)
+
+				// this is not move-if-newer because it should match the pdf?
+				err = g.MoveToDir(sub.OwnPath,
+					destination)
+
+				if err == nil {
+					g.logger.Info().
+						Str("file", sub.OwnPath).
+						Str("course", sub.Assignment).
+						Str("destination", destination).
+						Msg("Moved receipt to Accepted Receipts")
+
+				} else {
+					g.logger.Error().
+						Str("file", sub.OwnPath).
+						Str("course", sub.Assignment).
+						Str("destination", destination).
+						Str("error", err.Error()).
+						Msg("Could not put receipt in Accepted Receipts")
 				}
-			}
-			err = g.MoveIfNewerThanDestinationInDir(sub.OwnPath, g.AcceptedReceipts(sub.Assignment))
-			if err != nil {
-				continue
-			}
+
+			case err == nil && !moved:
+
+				err := os.Remove(currentPath)
+
+				if err == nil {
+					g.logger.Info().
+						Str("file", currentPath).
+						Str("course", sub.Assignment).
+						Str("destination", destination).
+						Msg("PDF validated but TOO OLD; deleted")
+				} else {
+					g.logger.Error().
+						Str("file", currentPath).
+						Str("course", sub.Assignment).
+						Str("destination", destination).
+						Str("error", err.Error()).
+						Msg("PDF validated but TOO OLD, and error deleting. Sigh. Over to you, human")
+				}
+
+			case err != nil:
+
+				g.logger.Error().
+					Str("file", currentPath).
+					Str("course", sub.Assignment).
+					Str("destination", destination).
+					Str("error", err.Error()).
+					Msg("PDF validated but ERROR prevented attempted move to accepted papers, returning to ingest")
+
+				destination := g.Ingest()
+
+				err := g.MoveToDir(currentPath, destination)
+
+				if err != nil {
+					g.logger.Error().
+						Str("file", currentPath).
+						Str("course", sub.Assignment).
+						Str("destination", destination).
+						Str("error", err.Error()).
+						Msg("Could not return PDF to ingest.")
+				}
+
+				err = g.MoveToDir(sub.OwnPath, destination)
+
+				if err != nil {
+					g.logger.Error().
+						Str("file", sub.OwnPath).
+						Str("course", sub.Assignment).
+						Str("destination", destination).
+						Str("error", err.Error()).
+						Msg("Could not return receipt to ingest")
+				}
+			} //switch
 
 		} else {
-			// TODO Need to flag this to the user
-			fmt.Printf("wanted [%s] but does not exist?\n", currentPath)
+			logger.Error().
+				Str("file", currentPath).
+				Str("course", sub.Assignment).
+				Str("destination", destination).
+				Str("error", err.Error()).
+				Msg("Could not find this PDF to put in accepted papers.")
 		}
 
 	}
@@ -115,13 +210,44 @@ func (g *Ingester) ValidateNewPapers() error {
 	rejectPDF, err := g.GetFileList(g.TempPDF())
 
 	for _, reject := range rejectPDF {
-		g.MoveToDir(reject, g.Ingest())
+
+		err := g.MoveToDir(reject, g.Ingest())
+
+		if err == nil {
+
+			g.logger.Info().
+				Str("file", reject).
+				Str("destination", g.Ingest()).
+				Msg("PDF rejected")
+		} else {
+			g.logger.Error().
+				Str("file", reject).
+				Str("destination", g.Ingest()).
+				Str("error", err.Error()).
+				Msg("PDF rejectd, but ERROR returning to ingest")
+		}
+
 	}
 
 	rejectTXT, err := g.GetFileList(g.TempTXT())
 
 	for _, reject := range rejectTXT {
-		g.MoveToDir(reject, g.Ingest())
+		err := g.MoveToDir(reject, g.Ingest())
+
+		if err == nil {
+
+			g.logger.Info().
+				Str("file", reject).
+				Str("destination", g.Ingest()).
+				Msg("TXT rejected")
+		} else {
+			g.logger.Error().
+				Str("file", reject).
+				Str("destination", g.Ingest()).
+				Str("error", err.Error()).
+				Msg("TXT rejectd, but ERROR returning to ingest")
+		}
+
 	}
 
 	return nil

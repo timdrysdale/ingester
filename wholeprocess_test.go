@@ -55,7 +55,20 @@ func TestAddBars(t *testing.T) {
 		}
 	}()
 
-	logger := zerolog.Nop() //ew(os.Stderr).With().Timestamp().Logger()
+	logFile := "./ingester-testing.log"
+
+	f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer f.Close()
+
+	logger := zerolog.New(f).With().Timestamp().Logger()
+
+	//logger := zerolog.Nop()
+
 	g, err := New("./tmp-delete-me", mch, &logger)
 	assert.NoError(t, err)
 
