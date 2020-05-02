@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/rs/zerolog"
 	"github.com/timdrysdale/parsesvg"
 	"github.com/timdrysdale/pdfcomment"
 	"github.com/timdrysdale/pdfpagedata"
@@ -38,7 +39,9 @@ func (g *Ingester) OutputPath(dir, inPath, decoration string) string {
 
 }
 
-func (g *Ingester) OverlayPapers(oc OverlayCommand) error {
+// we pass pointer to logger that has a processing stage string pre-prended to it
+// so we can tell what stage overlay is being used at
+func (g *Ingester) OverlayPapers(oc OverlayCommand, logger *zerolog.Logger) error {
 
 	// assume someone hits a button to ask us to do this ...
 	// we'll operate on the directory that is associated with
@@ -49,6 +52,10 @@ func (g *Ingester) OverlayPapers(oc OverlayCommand) error {
 	inPaths, err := g.GetFileList(oc.FromPath)
 	if err != nil {
 		oc.Msg.Send(fmt.Sprintf("Stopping early; couldn't get files because %v\n", err))
+		logger.Error().
+			Str("source-dir", oc.FromPath).
+			Str("error", err.Error()).
+			Msg(fmt.Sprintf("Stopping early; couldn't get files because %v\n", err))
 		return err
 	}
 
@@ -58,12 +65,20 @@ func (g *Ingester) OverlayPapers(oc OverlayCommand) error {
 
 		if err != nil {
 			oc.Msg.Send(fmt.Sprintf("Skipping (%s): error counting pages because %v\n", inPath, err))
+			logger.Error().
+				Str("file", inPath).
+				Str("error", err.Error()).
+				Msg(fmt.Sprintf("Skipping (%s): error counting pages because %v\n", inPath, err))
 			continue
 		}
 
 		pageDataMap, err := pdfpagedata.GetPageDataFromFile(inPath)
 
 		if err != nil {
+			logger.Error().
+				Str("file", inPath).
+				Str("error", err.Error()).
+				Msg(fmt.Sprintf("Skipping (%s): error obtaining pagedata\n", inPath))
 			oc.Msg.Send(fmt.Sprintf("Skipping (%s): error obtaining pagedata\n", inPath))
 			continue
 		}
@@ -76,6 +91,11 @@ func (g *Ingester) OverlayPapers(oc OverlayCommand) error {
 		// clean out any old versions of the pagedata....
 		err = pdfpagedata.PruneOldRevisions(&pageDataMap)
 		if err != nil {
+			logger.Error().
+				Str("file", inPath).
+				Str("error", err.Error()).
+				Msg(fmt.Sprintf("Skipping (%s): error pruning old pagedata revisions\n", inPath))
+
 			oc.Msg.Send(fmt.Sprintf("Skipping (%s): error pruning old pagedata revisions\n", inPath))
 			continue
 		}
@@ -95,6 +115,11 @@ func (g *Ingester) OverlayPapers(oc OverlayCommand) error {
 			Template:      oc.TemplatePath,
 			Msg:           oc.Msg,
 		})
+		logger.Info().
+			Str("file", inPath).
+			Int("page-count", count).
+			Int("page-data-count", pdfpagedata.GetLen(pageDataMap)).
+			Msg(fmt.Sprintf("Preparing to process: file (%s) has <%d> pages and [%d] pageDatas\n", inPath, count, pdfpagedata.GetLen(pageDataMap)))
 		oc.Msg.Send(fmt.Sprintf("Preparing to process: file (%s) has <%d> pages and [%d] pageDatas\n", inPath, count, pdfpagedata.GetLen(pageDataMap)))
 
 	} // for loop through all files
@@ -111,7 +136,13 @@ func (g *Ingester) OverlayPapers(oc OverlayCommand) error {
 		ot := overlayTasks[i]
 
 		newtask := pool.NewTask(func() error {
-			pc, err := g.OverlayOnePDF(ot)
+			pc, err := g.OverlayOnePDF(ot, logger)
+			logger.Info().
+				Str("file", ot.InputPath).
+				Str("destination", ot.OutputPath).
+				Int("page-count", pc).
+				Msg(fmt.Sprintf("Finished processing (%s) into (%s)which had <%d> pages", ot.InputPath, ot.OutputPath, pc))
+
 			oc.Msg.Send(fmt.Sprintf("Finished processing (%s) into (%s)which had <%d> pages", ot.InputPath, ot.OutputPath, pc))
 			oc.Msg.Send(fmt.Sprintf("pages(%d)", pc))
 			return err
@@ -120,6 +151,9 @@ func (g *Ingester) OverlayPapers(oc OverlayCommand) error {
 	}
 
 	p := pool.NewPool(tasks, runtime.GOMAXPROCS(-1))
+	logger.Info().
+		Int("speed-up", runtime.GOMAXPROCS(-1)).
+		Msg(fmt.Sprintf("Using parallel processing to get x%d speed-up\n", runtime.GOMAXPROCS(-1)))
 
 	oc.Msg.Send(fmt.Sprintf("Using parallel processing to get x%d speed-up\n", runtime.GOMAXPROCS(-1)))
 
@@ -130,6 +164,9 @@ func (g *Ingester) OverlayPapers(oc OverlayCommand) error {
 	var numErrors int
 	for _, task := range p.Tasks {
 		if task.Err != nil {
+			logger.Error().
+				Str("error", task.Err.Error()).
+				Msg(fmt.Sprintf("Processing problem %v", task.Err))
 			oc.Msg.Send(fmt.Sprintf("Processing error: %v", task.Err))
 			numErrors++
 		}
@@ -138,8 +175,16 @@ func (g *Ingester) OverlayPapers(oc OverlayCommand) error {
 
 	// report how we did
 	if numErrors > 0 {
+		logger.Error().
+			Int("error-count", numErrors).
+			Int("script-count", N).
+			Msg(fmt.Sprintf("Processing finished with overlay tasks returning <%d> errors from <%d> scripts\n", numErrors, N))
 		oc.Msg.Send(fmt.Sprintf("Processing finished with overlay tasks returning <%d> errors from <%d> scripts\n", numErrors, N))
 	} else {
+		logger.Info().
+			Int("error-count", numErrors).
+			Int("script-count", N).
+			Msg(fmt.Sprintf("Processing finished <%d> scripts without any errors\n", N))
 		oc.Msg.Send(fmt.Sprintf("Processing finished, completed <%d> scripts\n", N))
 	}
 	return nil
@@ -148,7 +193,7 @@ func (g *Ingester) OverlayPapers(oc OverlayCommand) error {
 // do one file, dynamically assembling the data we need make the latest pagedata
 // from what we get in the OverlayTask struct
 // return the number of pages
-func (g *Ingester) OverlayOnePDF(ot OverlayTask) (int, error) {
+func (g *Ingester) OverlayOnePDF(ot OverlayTask, logger *zerolog.Logger) (int, error) {
 
 	// need page count to find the jpeg files again later
 	numPages, err := CountPages(ot.InputPath)
@@ -170,6 +215,9 @@ OUTER:
 	}
 
 	if courseCode == "" {
+		logger.Error().
+			Str("file", ot.InputPath).
+			Msg(fmt.Sprintf("Can't figure out the course code for file (%s) - not present in PageData?\n", ot.InputPath))
 		ot.Msg.Send(fmt.Sprintf("Can't figure out the course code for file (%s) - not present in PageData?\n", ot.InputPath))
 		return 0, errors.New("Couldn't find a course code")
 	}
@@ -182,12 +230,20 @@ OUTER:
 
 	f, err := os.Open(ot.InputPath)
 	if err != nil {
+		logger.Error().
+			Str("file", ot.InputPath).
+			Str("error", err.Error()).
+			Msg(fmt.Sprintf("Can't open file (%s) because: %v\n", ot.InputPath, err))
 		ot.Msg.Send(fmt.Sprintf("Can't open file (%s) because: %v\n", ot.InputPath, err))
 		return 0, err
 	}
 
 	pdfReader, err := pdf.NewPdfReader(f)
 	if err != nil {
+		logger.Error().
+			Str("file", ot.InputPath).
+			Str("error", err.Error()).
+			Msg(fmt.Sprintf("Can't read from file (%s) because: %v\n", ot.InputPath, err))
 		ot.Msg.Send(fmt.Sprintf("Can't read from file (%s) because: %v\n", ot.InputPath, err))
 		return 0, err
 	}
@@ -198,6 +254,10 @@ OUTER:
 
 	err = ConvertPDFToJPEGs(ot.InputPath, jpegPath, jpegFileOption)
 	if err != nil {
+		logger.Error().
+			Str("file", ot.InputPath).
+			Str("error", err.Error()).
+			Msg(fmt.Sprintf("Can't flatten file (%s) to images because: %v\n", ot.InputPath, err))
 		ot.Msg.Send(fmt.Sprintf("Can't flatten file (%s) to images because: %v\n", ot.InputPath, err))
 		return 0, err
 	}
@@ -219,6 +279,10 @@ OUTER:
 		pageNumber := imgIdx - 1 //imgIdx starts 1 (books), pageNumber starts at 0 (computers!)
 
 		if len(ot.PageDataMap[pageNumber]) < 1 {
+			logger.Error().
+				Str("file", ot.InputPath).
+				Int("page-number", imgIdx).
+				Msg(fmt.Sprintf("Info: no existing page data for file (%s) on page <%d>\n", ot.InputPath, imgIdx))
 			ot.Msg.Send(fmt.Sprintf("Info: no existing page data for file (%s) on page <%d>\n", ot.InputPath, imgIdx))
 		}
 
@@ -274,6 +338,12 @@ OUTER:
 
 		err = parsesvg.RenderSpreadExtra(contents)
 		if err != nil {
+			logger.Error().
+				Str("file", ot.InputPath).
+				Int("page-number", imgIdx).
+				Str("error", err.Error()).
+				Msg(fmt.Sprintf("Error rendering spread for page <%d> of (%s) because %v\n", imgIdx, ot.InputPath, err))
+
 			ot.Msg.Send(fmt.Sprintf("Error rendering spread for page <%d> of (%s) because %v\n", imgIdx, ot.InputPath, err))
 			return 0, err
 
@@ -283,9 +353,20 @@ OUTER:
 	}
 	err = MergePDF(mergePaths, ot.OutputPath)
 	if err != nil {
+		logger.Error().
+			Str("file", ot.InputPath).
+			Str("error", err.Error()).
+			Msg(fmt.Sprintf("Error merging processed pages for (%s) because %v\n", ot.InputPath, err))
+
 		ot.Msg.Send(fmt.Sprintf("Error merging processed pages for (%s) because %v\n", ot.InputPath, err))
 		return 0, err
 	}
+	logger.Info().
+		Str("file", ot.InputPath).
+		Int("page-count", ot.PageCount).
+		Str("spread-name", ot.SpreadName).
+		Msg(fmt.Sprintf("Finished rendering [%s] overlay for (%s) which had <%d> pages\n", ot.SpreadName, ot.InputPath, ot.PageCount))
+
 	ot.Msg.Send(fmt.Sprintf("Finished rendering [%s] overlay for (%s) which had <%d> pages\n", ot.SpreadName, ot.InputPath, ot.PageCount))
 	return numPages, nil
 

@@ -11,6 +11,8 @@ import (
 
 func (g *Ingester) AddMarkBar(exam string, marker string) error {
 
+	logger := g.logger.With().Str("process", "add-mark-bar").Logger()
+
 	mc := chmsg.MessagerConf{
 		ExamName:     exam,
 		FunctionName: "overlay",
@@ -67,14 +69,29 @@ func (g *Ingester) AddMarkBar(exam string, marker string) error {
 		PathDecoration:    g.MarkerABCDecoration(marker),
 	}
 
-	err = g.OverlayPapers(oc)
+	err = g.OverlayPapers(oc, &logger)
 
-	cm.Send(fmt.Sprintf("Finished Processing markbar UUID=%s\n", uuidStr))
-
+	if err == nil {
+		cm.Send(fmt.Sprintf("Finished Processing markbar UUID=%s\n", uuidStr))
+		logger.Info().
+			Str("UUID", uuidStr).
+			Str("marker", marker).
+			Str("exam", exam).
+			Msg("Finished add-mark-bar")
+	} else {
+		logger.Error().
+			Str("UUID", uuidStr).
+			Str("marker", marker).
+			Str("exam", exam).
+			Str("error", err.Error()).
+			Msg("Error add-mark-bar")
+	}
 	return err
 }
 
 func (g *Ingester) AddModerateActiveBar(exam string, moderator string) error {
+
+	logger := g.logger.With().Str("process", "add-moderate-active-bar").Logger()
 
 	mc := chmsg.MessagerConf{
 		ExamName:     exam,
@@ -132,14 +149,30 @@ func (g *Ingester) AddModerateActiveBar(exam string, moderator string) error {
 		PathDecoration:    g.ModeratorABCDecoration(moderator),
 	}
 
-	err = g.OverlayPapers(oc)
+	err = g.OverlayPapers(oc, &logger)
 
-	cm.Send(fmt.Sprintf("Finished Processing add-moderate-active-bar UUID=%s\n", uuidStr))
+	if err == nil {
+		cm.Send(fmt.Sprintf("Finished Processing add-moderate-active-bar UUID=%s\n", uuidStr))
+		logger.Info().
+			Str("UUID", uuidStr).
+			Str("moderator", moderator).
+			Str("exam", exam).
+			Msg("Finished add-moderate-active-bar")
+	} else {
+		logger.Error().
+			Str("UUID", uuidStr).
+			Str("moderator", moderator).
+			Str("exam", exam).
+			Str("error", err.Error()).
+			Msg("Error add-moderate-active-bar")
+	}
 
 	return err
 }
 
 func (g *Ingester) AddModerateInActiveBar(exam string) error {
+
+	logger := g.logger.With().Str("process", "add-moderate-inactive-bar").Logger()
 
 	mc := chmsg.MessagerConf{
 		ExamName:     exam,
@@ -197,15 +230,27 @@ func (g *Ingester) AddModerateInActiveBar(exam string) error {
 		PathDecoration:    g.ModeratorABCDecoration("X"),
 	}
 
-	err = g.OverlayPapers(oc)
+	err = g.OverlayPapers(oc, &logger)
 
-	cm.Send(fmt.Sprintf("Finished Processing add-moderate-inactive-bar UUID=%s\n", uuidStr))
+	if err == nil {
+		cm.Send(fmt.Sprintf("Finished Processing add-moderate-inactive-bar UUID=%s\n", uuidStr))
+		logger.Info().
+			Str("UUID", uuidStr).
+			Str("exam", exam).
+			Msg("Finished add-moderate-inactive-bar")
+	} else {
+		logger.Error().
+			Str("UUID", uuidStr).
+			Str("exam", exam).
+			Str("error", err.Error()).
+			Msg("Error add-moderate-inactive-bar")
+	}
 
 	return err
 }
 
 func (g *Ingester) AddCheckBar(exam string, checker string) error {
-
+	logger := g.logger.With().Str("process", "add-check-bar").Logger()
 	mc := chmsg.MessagerConf{
 		ExamName:     exam,
 		FunctionName: "overlay",
@@ -262,9 +307,23 @@ func (g *Ingester) AddCheckBar(exam string, checker string) error {
 		PathDecoration:    g.CheckerABCDecoration(checker),
 	}
 
-	err = g.OverlayPapers(oc)
+	err = g.OverlayPapers(oc, &logger)
 
-	cm.Send(fmt.Sprintf("Finished Processing add-check-bar UUID=%s\n", uuidStr))
-
+	if err == nil {
+		cm.Send(fmt.Sprintf("Finished Processing add-check-bar UUID=%s\n", uuidStr))
+		logger.Info().
+			Str("UUID", uuidStr).
+			Str("checker", checker).
+			Str("exam", exam).
+			Msg("Finished add-check-bar")
+	} else {
+		logger.Error().
+			Str("UUID", uuidStr).
+			Str("checker", checker).
+			Str("exam", exam).
+			Str("error", err.Error()).
+			Msg("Error add-checker-bar")
+	}
 	return err
+
 }
