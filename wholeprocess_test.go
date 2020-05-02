@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/timdrysdale/chmsg"
 	"github.com/timdrysdale/gradexpath"
@@ -54,7 +55,8 @@ func TestAddBars(t *testing.T) {
 		}
 	}()
 
-	g, err := NewIngester("./tmp-delete-me", mch)
+	logger := zerolog.Nop() //ew(os.Stderr).With().Timestamp().Logger()
+	g, err := New("./tmp-delete-me", mch, &logger)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "./tmp-delete-me", g.Root())
