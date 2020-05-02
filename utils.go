@@ -14,6 +14,25 @@ import (
 	pdf "github.com/timdrysdale/unipdf/v3/model"
 )
 
+func (g *Ingester) CleanFromIngest() error {
+
+	files, err := g.GetFileList(g.Ingest())
+	if err != nil {
+		return err
+	}
+	errorCache := error(nil)
+
+	for _, file := range files {
+		err = os.Remove(file)
+		if err != nil {
+			//count errors?
+			errorCache = err
+			g.logger.Error().Str("file", file).Msg("Could not delete from Ingest")
+		}
+	}
+	return errorCache
+}
+
 // for validate's receipt map
 func fileKey(path string) string {
 	return strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
@@ -303,4 +322,72 @@ func CountPages(inputPath string) (int, error) {
 
 	return numPages, nil
 
+}
+
+// if the source file is not newer, it's not an error
+// we just won't move it - anything left we deal with later
+func (g *Ingester) MoveIfNewerThanDestination(source, destination string) error {
+
+	//check both exist
+	sourceInfo, err := os.Stat(source)
+
+	if err != nil {
+		return err
+	}
+
+	destinationInfo, err := os.Stat(destination)
+
+	// source newer by definition if destination does not exist
+	if os.IsNotExist(err) {
+		err = os.Rename(source, destination)
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	if sourceInfo.ModTime().After(destinationInfo.ModTime()) {
+		err = os.Rename(source, destination)
+		return err
+	}
+
+	return nil
+
+}
+
+//returns true if moved
+func (g *Ingester) MoveIfNewerThanDestinationInDir(source, destinationDir string) (bool, error) {
+
+	//check both exist
+	sourceInfo, err := os.Stat(source)
+
+	if err != nil {
+		return false, err
+	}
+
+	destination := filepath.Join(destinationDir, filepath.Base(source))
+
+	destinationInfo, err := os.Stat(destination)
+
+	// source newer by definition if destination does not exist
+	if os.IsNotExist(err) {
+		err = os.Rename(source, destination)
+		return true, err
+	}
+	if err != nil {
+		return false, err
+	}
+	if sourceInfo.ModTime().After(destinationInfo.ModTime()) {
+		err = os.Rename(source, destination)
+		return true, err
+	}
+
+	return false, nil
+
+}
+
+func (g *Ingester) MoveToDir(source, destinationDir string) error {
+
+	destination := filepath.Join(destinationDir, filepath.Base(source))
+
+	return os.Rename(source, destination)
 }

@@ -1,16 +1,14 @@
 package ingester
 
 import (
-	"time"
-
 	"github.com/timdrysdale/chmsg"
 	"github.com/timdrysdale/pdfpagedata"
 )
 
-type Ingester struct {
-	root    string
-	msgCh   chan chmsg.MessageInfo
-	timeout time.Duration
+type PDFSummary struct {
+	CourseCode  string
+	PreparedFor string
+	ToDo        string
 }
 
 type FlattenTask struct {

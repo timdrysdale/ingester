@@ -11,7 +11,8 @@ tmp-delete-me
 example-output
 draft
 test-later-stages
-
+*.tmp
+*.log
 # Test binary, built with `go test -c`
 *.test
 

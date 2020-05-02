@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/timdrysdale/chmsg"
 )
@@ -35,7 +36,19 @@ func TestStageArchive(t *testing.T) {
 
 		}
 	}()
-	g, err := NewIngester("./tmp-delete-me", mch)
+
+	logFile := "./ingester-testing.log"
+	f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer f.Close()
+
+	logger := zerolog.New(f).With().Timestamp().Logger()
+	fmt.Println("STARTING TEST STAGE ARCHIVE")
+	g, err := New("./tmp-delete-me", mch, &logger)
+	g.logger.Info().Msg("Starting TestStageArchive")
 
 	assert.NoError(t, err)
 
@@ -108,7 +121,19 @@ func TestStageUnModified(t *testing.T) {
 		}
 	}()
 
-	g, err := NewIngester("./tmp-delete-me", mch)
+	logFile := "./ingester-testing.log"
+	f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer f.Close()
+
+	logger := zerolog.New(f).With().Timestamp().Logger()
+
+	g, err := New("./tmp-delete-me", mch, &logger)
+	g.logger.Info().Msg("Starting TestStageUnModified")
 
 	assert.NoError(t, err)
 
@@ -173,7 +198,8 @@ func TestStageUnModified(t *testing.T) {
 func TestStructFileMod(t *testing.T) {
 
 	mch := make(chan chmsg.MessageInfo)
-	g, err := NewIngester("./tmp-delete-me", mch)
+	logger := zerolog.Nop()
+	g, err := New("./tmp-delete-me", mch, &logger)
 
 	assert.NoError(t, err)
 
@@ -206,7 +232,8 @@ func TestStructFileMod(t *testing.T) {
 
 func TestNewFileMove(t *testing.T) {
 	mch := make(chan chmsg.MessageInfo)
-	g, err := NewIngester("./tmp-delete-me", mch)
+	logger := zerolog.Nop()
+	g, err := New("./tmp-delete-me", mch, &logger)
 
 	d0 := []byte("Gradex Testing\n")
 	basepath := filepath.Join(g.Root(), "tmp")
