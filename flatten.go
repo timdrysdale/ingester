@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/timdrysdale/anon"
 	"github.com/timdrysdale/parselearn"
 	"github.com/timdrysdale/parsesvg"
@@ -20,6 +21,8 @@ import (
 )
 
 func (g *Ingester) FlattenNewPapers(exam string) error {
+
+	logger := g.logger.With().Str("process", "flatten").Logger()
 
 	//assume someone hits a button to ask us to do this ...
 
@@ -44,6 +47,11 @@ func (g *Ingester) FlattenNewPapers(exam string) error {
 	// load our identity database
 	identity, err := anon.New(g.IdentityCSV())
 	if err != nil {
+		logger.Error().
+			Str("file", g.IdentityCSV()).
+			Str("course", exam).
+			Str("error", err.Error()).
+			Msg("Cannot open identity.csv")
 		return err
 	}
 
@@ -51,6 +59,11 @@ func (g *Ingester) FlattenNewPapers(exam string) error {
 
 	receipts, err := g.GetFileList(g.AcceptedReceipts(exam))
 	if err != nil {
+		logger.Error().
+			Str("file", g.AcceptedReceipts(exam)).
+			Str("course", exam).
+			Str("error", err.Error()).
+			Msg("Cannot get list of accepted Receipts")
 		return err
 	}
 
@@ -58,40 +71,55 @@ func (g *Ingester) FlattenNewPapers(exam string) error {
 
 		sub, err := parselearn.ParseLearnReceipt(receipt)
 		if err != nil {
-			fmt.Printf("couldn't parse receipt %s because %v", receipt, err)
+			logger.Error().
+				Str("file", receipt).
+				Str("course", exam).
+				Str("error", err.Error()).
+				Msg(fmt.Sprintf("Cannot parse receipt %s because %v", receipt, err))
 			continue
-			// TODO need to flag to user as we shouldn't fail to read a learn receipt here
 		}
 
 		pdfPath, err := GetPDFPath(sub.Filename, g.AcceptedPapers(exam))
 
 		if err != nil {
-			fmt.Printf("couldn't get PDF filename for %s because %v\n", sub.Filename, err)
+			logger.Error().
+				Str("file", sub.Filename).
+				Str("dir", g.AcceptedPapers(exam)).
+				Str("course", exam).
+				Str("error", err.Error()).
+				Msg(fmt.Sprintf("couldn't get PDF filename for %s because %v", sub.Filename, err))
 			continue
-			// TODO need to flag to user as we shouldn't fail to find a PDF here
 		}
 
 		count, err := CountPages(pdfPath)
 
 		if err != nil {
-			fmt.Printf("couldn't countPages for %s because %v\n", pdfPath, err)
+			logger.Error().
+				Str("file", pdfPath).
+				Str("course", exam).
+				Str("error", err.Error()).
+				Msg(fmt.Sprintf("couldn't countPages for %s because %v", pdfPath, err))
 			continue
-			// TODO need to flag to user as we shouldn't fail to count pages here
-		}
-		shortDate, err := GetShortLearnDate(sub)
-		if err != nil {
-			fmt.Printf("couldn't get shortlearndate for %s because %v\n", receipt, err)
-			continue
-			// TODO need to flag to user as we shouldn't fail to read sub here
 		}
 
-		//TODO If identity not known, need to flag to user, and not process paper just now
+		shortDate, err := GetShortLearnDate(sub)
+		if err != nil {
+			logger.Error().
+				Str("file", sub.OwnPath).
+				Str("course", exam).
+				Str("error", err.Error()).
+				Msg(fmt.Sprintf("couldn't get shortlearndate for %s because %v", receipt, err))
+			continue
+		}
 
 		anonymousIdentity, err := identity.GetAnonymous(sub.Matriculation)
 		if err != nil {
-			fmt.Printf("couldn't get identity for for %s because %v\n", sub.Matriculation, err)
+			logger.Error().
+				Str("identity", sub.Matriculation).
+				Str("course", exam).
+				Str("error", err.Error()).
+				Msg(fmt.Sprintf("couldn't get anonymous identity for for %s because %v\n", sub.Matriculation, err))
 			continue
-			// TODO need to flag to user as we should have all IDs in our dictionary
 		}
 
 		pagedata := pdfpagedata.PageData{
@@ -134,8 +162,24 @@ func (g *Ingester) FlattenNewPapers(exam string) error {
 		pd := flattenTasks[i].Data
 
 		newtask := pool.NewTask(func() error {
-			pc, err := g.FlattenOnePDF(inputPath, outputPath, pd)
+			pc, err := g.FlattenOnePDF(inputPath, outputPath, pd, &logger)
 			pcChan <- pc
+			if err == nil {
+				logger.Info().
+					Int("page-count", pc).
+					Str("file", inputPath).
+					Str("destination", outputPath).
+					Msg("Processing finished OK")
+			} else {
+
+				logger.Error().
+					Int("page-count", pc).
+					Str("file", inputPath).
+					Str("destination", outputPath).
+					Str("error", err.Error()).
+					Msg("Processing ERROR")
+			}
+
 			return err
 		})
 		tasks = append(tasks, newtask)
@@ -165,19 +209,32 @@ func (g *Ingester) FlattenNewPapers(exam string) error {
 	var numErrors int
 	for _, task := range p.Tasks {
 		if task.Err != nil {
-			fmt.Println(task.Err)
 			numErrors++
 		}
 	}
+	if numErrors == 0 {
+		logger.Info().
+			Int("task-count", len(p.Tasks)).
+			Msg(fmt.Sprintf("Processed  %d scripts OK", len(p.Tasks)))
+	} else {
+		logger.Error().
+			Int("task-count", len(p.Tasks)).
+			Int("error-count", numErrors).
+			Msg(fmt.Sprintf("Processed  %d scripts with %d errors", len(p.Tasks), numErrors))
+	}
+
 	close(closed)
 
 	return nil
 
 }
 
-func (g *Ingester) FlattenOnePDF(inputPath, outputPath string, pageData pdfpagedata.PageData) (int, error) {
+func (g *Ingester) FlattenOnePDF(inputPath, outputPath string, pageData pdfpagedata.PageData, logger *zerolog.Logger) (int, error) {
 
 	if strings.ToLower(filepath.Ext(inputPath)) != ".pdf" {
+		logger.Error().
+			Str("file", inputPath).
+			Msg(fmt.Sprintf("%s does not appear to be a pdf", inputPath))
 		return 0, errors.New(fmt.Sprintf("%s does not appear to be a pdf", inputPath))
 	}
 
@@ -193,13 +250,19 @@ func (g *Ingester) FlattenOnePDF(inputPath, outputPath string, pageData pdfpaged
 
 	f, err := os.Open(inputPath)
 	if err != nil {
-		fmt.Println("FLATTEN Can't open pdf")
+		logger.Error().
+			Str("file", inputPath).
+			Str("error", err.Error()).
+			Msg(fmt.Sprintf("can't open %s", inputPath))
 		return 0, err
 	}
 
 	pdfReader, err := pdf.NewPdfReader(f)
 	if err != nil {
-		fmt.Println("FLATTEN Can't read pdf")
+		logger.Error().
+			Str("file", inputPath).
+			Str("error", err.Error()).
+			Msg(fmt.Sprintf("can't read %s", inputPath))
 		return 0, err
 	}
 
@@ -209,6 +272,12 @@ func (g *Ingester) FlattenOnePDF(inputPath, outputPath string, pageData pdfpaged
 
 	err = ConvertPDFToJPEGs(inputPath, jpegPath, jpegFileOption)
 	if err != nil {
+		logger.Error().
+			Str("file", inputPath).
+			Str("destination", jpegPath).
+			Str("naming-format", jpegFileOption).
+			Str("error", err.Error()).
+			Msg(fmt.Sprintf("can't convert to images %s", inputPath))
 		return 0, err
 	}
 
@@ -276,7 +345,9 @@ func (g *Ingester) FlattenOnePDF(inputPath, outputPath string, pageData pdfpaged
 
 		err := parsesvg.RenderSpreadExtra(contents)
 		if err != nil {
-			fmt.Println(err)
+			logger.Error().
+				Str("error", err.Error()).
+				Msg(fmt.Sprintf("Error rendering spread for %s", inputPath))
 			return 0, err
 
 		}
@@ -285,10 +356,16 @@ func (g *Ingester) FlattenOnePDF(inputPath, outputPath string, pageData pdfpaged
 	}
 	err = MergePDF(mergePaths, outputPath)
 	if err != nil {
-		fmt.Printf("MERGE: %v", err)
+		logger.Error().
+			Str("error", err.Error()).
+			Msg(fmt.Sprintf("Error merging for %s: %s", inputPath, err.Error()))
 		return 0, err
 	}
 
+	logger.Info().
+		Str("file", inputPath).
+		Int("page-count", numPages).
+		Msg(fmt.Sprintf("processing finished for %s, with %d pages", inputPath, numPages))
 	return numPages, nil
 
 }
